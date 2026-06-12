@@ -1,0 +1,266 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
+import DataView from 'primevue/dataview';
+import SelectButton from 'primevue/selectbutton';
+import Button from 'primevue/button';
+import Tag from 'primevue/tag';
+import ProgressSpinner from 'primevue/progressspinner';
+import Dialog from 'primevue/dialog';
+import SignFormDialog from '@/components/SignFormDialog.vue';
+import { useSignsStore } from '@/stores/signs';
+import type { BusSign } from '@/types/sign';
+
+const store = useSignsStore();
+const router = useRouter();
+const toast = useToast();
+const confirm = useConfirm();
+
+const layout = ref<'grid' | 'list'>('grid');
+const layoutOptions = [
+  { label: '网格', value: 'grid', icon: 'pi pi-th-large' },
+  { label: '列表', value: 'list', icon: 'pi pi-list' },
+];
+
+const previewSign = ref<BusSign | null>(null);
+const previewVisible = ref(false);
+const formVisible = ref(false);
+const editingSign = ref<BusSign | null>(null);
+
+onMounted(async () => {
+  try {
+    await store.loadSigns();
+  } catch {
+    toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
+  }
+});
+
+/** 打开快速预览 Dialog */
+function openPreview(sign: BusSign) {
+  previewSign.value = sign;
+  previewVisible.value = true;
+}
+
+/** 跳转详情页 */
+function goDetail(id: number) {
+  router.push({ name: 'sign-detail', params: { id } });
+}
+
+/** 打开新建表单 */
+function openCreate() {
+  editingSign.value = null;
+  formVisible.value = true;
+}
+
+/** 打开编辑表单 */
+function openEdit(sign: BusSign) {
+  editingSign.value = sign;
+  formVisible.value = true;
+}
+
+/** 删除站牌 */
+function confirmDelete(sign: BusSign) {
+  confirm.require({
+    message: `确定删除「${sign.city}」站牌记录吗？`,
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await store.removeSign(sign.id);
+        toast.add({ severity: 'success', summary: '已删除', life: 2000 });
+      } catch {
+        toast.add({ severity: 'error', summary: '删除失败', life: 3000 });
+      }
+    },
+  });
+}
+
+/** 表单保存成功回调 */
+function onFormSaved() {
+  formVisible.value = false;
+  toast.add({ severity: 'success', summary: '保存成功', life: 2000 });
+}
+</script>
+
+<template>
+  <div class="min-h-screen">
+    <!-- 页头 -->
+    <header class="bg-brand-600 text-white shadow-md">
+      <div class="mx-auto max-w-6xl px-4 py-6">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-map-marker text-3xl" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">地方公交站牌设计图鉴</h1>
+            <p class="mt-1 text-sm text-blue-100">收录各地公交站牌样式，记录城市公共交通的视觉记忆</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      <!-- 工具栏 -->
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <p class="text-slate-600">
+          共 <span class="font-semibold text-brand-600">{{ store.signs.length }}</span> 条记录
+        </p>
+        <div class="flex items-center gap-3">
+          <SelectButton
+            v-model="layout"
+            :options="layoutOptions"
+            option-label="label"
+            option-value="value"
+            data-key="value"
+          />
+          <Button label="新增站牌" icon="pi pi-plus" @click="openCreate" />
+        </div>
+      </div>
+
+      <!-- 加载中 -->
+      <div v-if="store.loading" class="flex justify-center py-20">
+        <ProgressSpinner />
+      </div>
+
+      <!-- 空状态 -->
+      <div
+        v-else-if="store.signs.length === 0"
+        class="rounded-xl border-2 border-dashed border-slate-200 py-20 text-center text-slate-400"
+      >
+        <i class="pi pi-inbox mb-3 text-4xl" />
+        <p>暂无站牌记录，点击「新增站牌」开始收录</p>
+      </div>
+
+      <!-- 站牌列表 -->
+      <DataView v-else :value="store.signs" :layout="layout">
+        <template #grid="slotProps">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              v-for="sign in slotProps.items"
+              :key="sign.id"
+              class="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+            >
+              <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
+                <img
+                  :src="sign.imageUrl"
+                  :alt="`${sign.city}站牌`"
+                  class="h-full w-full object-cover transition group-hover:scale-105"
+                />
+                <Tag
+                  :value="sign.inUse ? '使用中' : '已停用'"
+                  :severity="sign.inUse ? 'success' : 'secondary'"
+                  class="absolute right-2 top-2"
+                />
+              </div>
+              <div class="p-4">
+                <div class="mb-1 flex items-center justify-between">
+                  <h3 class="text-lg font-semibold text-slate-800">{{ sign.city }}</h3>
+                  <span class="text-sm text-slate-400">{{ sign.era }}</span>
+                </div>
+                <p class="mb-4 line-clamp-2 text-sm text-slate-500">{{ sign.styleDescription }}</p>
+                <div class="flex gap-2">
+                  <Button label="预览" icon="pi pi-eye" size="small" outlined @click="openPreview(sign)" />
+                  <Button label="详情" icon="pi pi-arrow-right" size="small" @click="goDetail(sign.id)" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template #list="slotProps">
+          <div class="flex flex-col gap-3">
+            <div
+              v-for="sign in slotProps.items"
+              :key="sign.id"
+              class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+            >
+              <img
+                :src="sign.imageUrl"
+                :alt="`${sign.city}站牌`"
+                class="h-24 w-36 shrink-0 rounded-lg object-cover"
+              />
+              <div class="flex flex-1 flex-col justify-between">
+                <div>
+                  <div class="mb-1 flex items-center gap-2">
+                    <h3 class="text-lg font-semibold">{{ sign.city }}</h3>
+                    <Tag :value="sign.era" severity="info" />
+                    <Tag
+                      :value="sign.inUse ? '使用中' : '已停用'"
+                      :severity="sign.inUse ? 'success' : 'secondary'"
+                    />
+                  </div>
+                  <p class="line-clamp-2 text-sm text-slate-500">{{ sign.styleDescription }}</p>
+                </div>
+                <div class="mt-2 flex gap-2">
+                  <Button label="预览" icon="pi pi-eye" size="small" text @click="openPreview(sign)" />
+                  <Button label="详情" icon="pi pi-arrow-right" size="small" text @click="goDetail(sign.id)" />
+                  <Button label="编辑" icon="pi pi-pencil" size="small" text @click="openEdit(sign)" />
+                  <Button
+                    label="删除"
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    severity="danger"
+                    @click="confirmDelete(sign)"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </DataView>
+    </main>
+
+    <!-- 快速预览 Dialog -->
+    <Dialog
+      v-model:visible="previewVisible"
+      :header="previewSign ? `${previewSign.city} · 站牌预览` : '站牌预览'"
+      modal
+      class="w-full max-w-lg"
+    >
+      <template v-if="previewSign">
+        <img
+          :src="previewSign.imageUrl"
+          :alt="`${previewSign.city}站牌`"
+          class="mb-4 w-full rounded-lg object-cover"
+        />
+        <dl class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-slate-400">城市</dt>
+            <dd class="font-medium">{{ previewSign.city }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-400">年代</dt>
+            <dd>{{ previewSign.era }}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-400">状态</dt>
+            <dd>
+              <Tag
+                :value="previewSign.inUse ? '使用中' : '已停用'"
+                :severity="previewSign.inUse ? 'success' : 'secondary'"
+              />
+            </dd>
+          </div>
+          <div>
+            <dt class="mb-1 text-slate-400">样式描述</dt>
+            <dd class="text-slate-600">{{ previewSign.styleDescription }}</dd>
+          </div>
+        </dl>
+        <div class="mt-4 flex justify-end gap-2">
+          <Button label="查看详情" icon="pi pi-external-link" @click="goDetail(previewSign.id); previewVisible = false" />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- 新建/编辑表单 -->
+    <SignFormDialog
+      v-model:visible="formVisible"
+      :sign="editingSign"
+      @saved="onFormSaved"
+    />
+  </div>
+</template>
