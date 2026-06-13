@@ -32,4 +32,23 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    color TEXT NOT NULL DEFAULT 'info',
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sign_tags (
+    sign_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (sign_id, tag_id),
+    FOREIGN KEY (sign_id) REFERENCES signs(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+  )
+`);
+
 export default db;

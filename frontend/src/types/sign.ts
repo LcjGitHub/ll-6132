@@ -1,3 +1,11 @@
+/** 标签 */
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
 /** 公交站牌记录 */
 export interface BusSign {
   id: number;
@@ -6,6 +14,7 @@ export interface BusSign {
   era: string;
   inUse: boolean;
   imageUrl: string;
+  tags?: Tag[];
 }
 
 /** 创建/更新站牌请求体 */
@@ -15,6 +24,7 @@ export interface BusSignInput {
   era: string;
   inUse: boolean;
   imageUrl: string;
+  tagIds?: number[];
 }
 
 /** 站牌筛选条件 */
@@ -22,6 +32,7 @@ export interface SignFilters {
   city?: string;
   era?: string;
   inUse?: boolean;
+  tagId?: number;
 }
 
 /** 城市站牌统计数据 */

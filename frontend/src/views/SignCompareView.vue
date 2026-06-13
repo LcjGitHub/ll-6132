@@ -143,8 +143,15 @@ function goDetail(id: number) {
                   <h2 class="text-2xl font-bold text-slate-800">{{ sign.city }}</h2>
                   <p class="mt-1 text-sm text-slate-400">记录 #{{ sign.id }}</p>
                 </div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                   <Tag :value="sign.era" severity="info" />
+                  <Tag
+                    v-if="sign.tags && sign.tags.length > 0"
+                    v-for="tag in sign.tags"
+                    :key="tag.id"
+                    :value="tag.name"
+                    :severity="tag.color as any"
+                  />
                   <Tag
                     :value="sign.inUse ? '使用中' : '已停用'"
                     :severity="sign.inUse ? 'success' : 'secondary'"

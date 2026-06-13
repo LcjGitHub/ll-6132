@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import InputSwitch from 'primevue/inputswitch';
 import Button from 'primevue/button';
+import MultiSelect from 'primevue/multiselect';
 import { useSignsStore } from '@/stores/signs';
 import type { BusSign, BusSignInput } from '@/types/sign';
 
@@ -21,20 +22,31 @@ const emit = defineEmits<{
 const store = useSignsStore();
 const saving = ref(false);
 
-const form = ref<BusSignInput>({
+const form = ref<BusSignInput & { tagIds: number[] }>({
   city: '',
   styleDescription: '',
   era: '',
   inUse: true,
   imageUrl: '',
+  tagIds: [],
 });
 
 const isEdit = ref(false);
+const maxTags = 3;
+
+onMounted(async () => {
+  if (store.tags.length === 0) {
+    await store.loadTags();
+  }
+});
 
 watch(
   () => props.visible,
-  (val) => {
+  async (val) => {
     if (val) {
+      if (store.tags.length === 0) {
+        await store.loadTags();
+      }
       if (props.sign) {
         isEdit.value = true;
         form.value = {
@@ -43,6 +55,7 @@ watch(
           era: props.sign.era,
           inUse: props.sign.inUse,
           imageUrl: props.sign.imageUrl,
+          tagIds: props.sign.tags?.map((t) => t.id) || [],
         };
       } else {
         isEdit.value = false;
@@ -52,6 +65,7 @@ watch(
           era: '',
           inUse: true,
           imageUrl: '',
+          tagIds: [],
         };
       }
     }
@@ -63,14 +77,25 @@ async function handleSubmit() {
   if (!form.value.city || !form.value.styleDescription || !form.value.era || !form.value.imageUrl) {
     return;
   }
+  if (form.value.tagIds.length > maxTags) {
+    return;
+  }
 
   saving.value = true;
   try {
+    const submitData: BusSignInput = {
+      city: form.value.city,
+      styleDescription: form.value.styleDescription,
+      era: form.value.era,
+      inUse: form.value.inUse,
+      imageUrl: form.value.imageUrl,
+      tagIds: form.value.tagIds.length > 0 ? form.value.tagIds : undefined,
+    };
     let result: BusSign;
     if (isEdit.value && props.sign) {
-      result = await store.editSign(props.sign.id, form.value);
+      result = await store.editSign(props.sign.id, submitData);
     } else {
-      result = await store.addSign(form.value);
+      result = await store.addSign(submitData);
     }
     emit('saved', result);
     emit('update:visible', false);
@@ -98,6 +123,26 @@ async function handleSubmit() {
         <InputText v-model="form.era" class="w-full" placeholder="如：2010年代" required />
       </div>
       <div>
+        <label class="mb-1 block text-sm font-medium text-slate-600">
+          站牌风格标签
+          <span class="text-slate-400">(最多 {{ maxTags }} 个)</span>
+        </label>
+        <MultiSelect
+          v-model="form.tagIds"
+          :options="store.tagOptions"
+          option-label="label"
+          option-value="value"
+          :max-selected-labels="maxTags"
+          placeholder="选择标签..."
+          display="chip"
+          class="w-full"
+          :filter="store.tags.length > 8"
+        />
+        <p v-if="form.tagIds.length > maxTags" class="mt-1 text-xs text-red-500">
+          最多只能选择 {{ maxTags }} 个标签
+        </p>
+      </div>
+      <div>
         <label class="mb-1 block text-sm font-medium text-slate-600">样式描述</label>
         <Textarea
           v-model="form.styleDescription"
@@ -123,7 +168,12 @@ async function handleSubmit() {
           type="button"
           @click="emit('update:visible', false)"
         />
-        <Button :label="isEdit ? '保存' : '创建'" type="submit" :loading="saving" />
+        <Button
+          :label="isEdit ? '保存' : '创建'"
+          type="submit"
+          :loading="saving"
+          :disabled="form.tagIds.length > maxTags"
+        />
       </div>
     </form>
   </Dialog>

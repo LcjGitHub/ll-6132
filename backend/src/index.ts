@@ -3,6 +3,7 @@ import cors from 'cors';
 import signsRouter from './routes/signs';
 import statsRouter from './routes/stats';
 import favoritesRouter from './routes/favorites';
+import { tagsRouter } from './routes/tags';
 import './seed';
 
 const app = express();
@@ -18,6 +19,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/signs', signsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/favorites', favoritesRouter);
+app.use('/api/tags', tagsRouter);
 
 app.listen(PORT, () => {
   console.log(`后端服务运行于 http://localhost:${PORT}`);

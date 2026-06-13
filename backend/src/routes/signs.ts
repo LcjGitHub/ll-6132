@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import db from '../db';
-import type { BusSign, BusSignInput } from '../types';
+import type { BusSign, BusSignInput, Tag } from '../types';
 
 const router = Router();
 
@@ -13,9 +13,37 @@ interface DbRow {
   image_url: string;
 }
 
-/** 将数据库行映射为 API 响应对象 */
-function rowToSign(row: DbRow): BusSign {
+interface DbTagRow {
+  id: number;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+function rowToTag(row: DbTagRow): Tag {
   return {
+    id: row.id,
+    name: row.name,
+    color: row.color,
+    createdAt: row.created_at,
+  };
+}
+
+function getTagsBySignId(signId: number): Tag[] {
+  const rows = db
+    .prepare(
+      `SELECT t.* FROM tags t
+       INNER JOIN sign_tags st ON t.id = st.tag_id
+       WHERE st.sign_id = ?
+       ORDER BY t.id`
+    )
+    .all(signId) as DbTagRow[];
+  return rows.map(rowToTag);
+}
+
+/** 将数据库行映射为 API 响应对象（含标签） */
+function rowToSign(row: DbRow, includeTags = true): BusSign {
+  const sign: BusSign = {
     id: row.id,
     city: row.city,
     styleDescription: row.style_description,
@@ -23,35 +51,60 @@ function rowToSign(row: DbRow): BusSign {
     inUse: row.in_use === 1,
     imageUrl: row.image_url,
   };
+  if (includeTags) {
+    sign.tags = getTagsBySignId(row.id);
+  }
+  return sign;
 }
 
-/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态筛选） */
+function setSignTags(signId: number, tagIds: number[] | undefined) {
+  db.prepare('DELETE FROM sign_tags WHERE sign_id = ?').run(signId);
+  if (!tagIds || tagIds.length === 0) return;
+  const uniqueIds = Array.from(new Set(tagIds)).slice(0, 3);
+  const insert = db.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
+  for (const tagId of uniqueIds) {
+    const tagExists = db.prepare('SELECT id FROM tags WHERE id = ?').get(tagId);
+    if (tagExists) {
+      insert.run(signId, tagId);
+    }
+  }
+}
+
+/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态、标签筛选） */
 router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse } = req.query;
+  const { city, era, inUse, tagId } = req.query;
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];
+  let joinClause = '';
 
   if (typeof city === 'string' && city.trim() !== '') {
-    conditions.push('city = ?');
+    conditions.push('s.city = ?');
     params.push(city);
   }
   if (typeof era === 'string' && era.trim() !== '') {
-    conditions.push('era = ?');
+    conditions.push('s.era = ?');
     params.push(era);
   }
   if (inUse !== undefined && inUse !== '') {
     const inUseVal = inUse === 'true' || inUse === '1' ? 1 : 0;
-    conditions.push('in_use = ?');
+    conditions.push('s.in_use = ?');
     params.push(inUseVal);
   }
+  if (typeof tagId === 'string' && tagId.trim() !== '') {
+    const tagIdNum = Number(tagId);
+    if (!Number.isNaN(tagIdNum) && tagIdNum > 0) {
+      joinClause = 'INNER JOIN sign_tags st ON s.id = st.sign_id';
+      conditions.push('st.tag_id = ?');
+      params.push(tagIdNum);
+    }
+  }
 
-  const sql = conditions.length > 0
-    ? `SELECT * FROM signs WHERE ${conditions.join(' AND ')} ORDER BY id`
-    : 'SELECT * FROM signs ORDER BY id';
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const sql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ORDER BY s.id`;
 
   const rows = db.prepare(sql).all(...params) as DbRow[];
-  res.json(rows.map(rowToSign));
+  res.json(rows.map((r) => rowToSign(r, true)));
 });
 
 /** GET /api/signs/batch — 按编号批量查询站牌详情 */
@@ -73,7 +126,7 @@ router.get('/batch', (req: Request, res: Response) => {
   const rows = db
     .prepare(`SELECT * FROM signs WHERE id IN (${placeholders}) ORDER BY id`)
     .all(...idList) as DbRow[];
-  res.json(rows.map(rowToSign));
+  res.json(rows.map((r) => rowToSign(r, true)));
 });
 
 /** GET /api/signs/:id — 获取单条站牌 */
@@ -83,7 +136,7 @@ router.get('/:id', (req: Request, res: Response) => {
     res.status(404).json({ error: '站牌不存在' });
     return;
   }
-  res.json(rowToSign(row));
+  res.json(rowToSign(row, true));
 });
 
 /** POST /api/signs — 新建站牌 */
@@ -101,8 +154,11 @@ router.post('/', (req: Request, res: Response) => {
     )
     .run(body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl);
 
-  const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(result.lastInsertRowid) as DbRow;
-  res.status(201).json(rowToSign(row));
+  const signId = result.lastInsertRowid as number;
+  setSignTags(signId, body.tagIds);
+
+  const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(signId) as DbRow;
+  res.status(201).json(rowToSign(row, true));
 });
 
 /** PUT /api/signs/:id — 更新站牌 */
@@ -119,8 +175,10 @@ router.put('/:id', (req: Request, res: Response) => {
      WHERE id = ?`
   ).run(body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl, req.params.id);
 
+  setSignTags(Number(req.params.id), body.tagIds);
+
   const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(req.params.id) as DbRow;
-  res.json(rowToSign(row));
+  res.json(rowToSign(row, true));
 });
 
 /** DELETE /api/signs/:id — 删除站牌 */

@@ -68,7 +68,7 @@ onMounted(async () => {
     if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
       store.filters.city = cityQuery;
     }
-    await Promise.all([store.loadSigns(), store.loadFavorites()]);
+    await Promise.all([store.loadSigns(), store.loadFavorites(), store.loadTags()]);
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
   }
@@ -199,12 +199,23 @@ async function handleToggleFavorite(sign: BusSign) {
               @change="store.setFilter('era', store.filters.era)"
             />
           </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">风格标签</label>
+            <Dropdown
+              v-model="store.filters.tagId"
+              :options="store.tagOptions"
+              placeholder="全部标签"
+              show-clear
+              class="w-40"
+              @change="store.setFilter('tagId', store.filters.tagId)"
+            />
+          </div>
           <div class="flex items-center gap-2">
             <InputSwitch v-model="store.filters.inUse" @change="store.setFilter('inUse', store.filters.inUse)" />
             <label class="text-sm font-medium text-slate-600">仅显示使用中</label>
           </div>
           <Button
-            v-if="store.filters.city || store.filters.era || store.filters.inUse"
+            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId"
             label="重置筛选"
             icon="pi pi-refresh"
             outlined
@@ -307,6 +318,15 @@ async function handleToggleFavorite(sign: BusSign) {
                   <h3 class="text-lg font-semibold text-slate-800">{{ sign.city }}</h3>
                   <span class="text-sm text-slate-400">{{ sign.era }}</span>
                 </div>
+                <div v-if="sign.tags && sign.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
+                  <Tag
+                    v-for="tag in sign.tags"
+                    :key="tag.id"
+                    :value="tag.name"
+                    :severity="tag.color as any"
+                    size="small"
+                  />
+                </div>
                 <p class="mb-4 line-clamp-2 text-sm text-slate-500">{{ sign.styleDescription }}</p>
                 <div class="flex gap-2">
                   <Button label="预览" icon="pi pi-eye" size="small" outlined @click="openPreview(sign)" />
@@ -358,9 +378,16 @@ async function handleToggleFavorite(sign: BusSign) {
               </div>
               <div class="flex flex-1 flex-col justify-between">
                 <div>
-                  <div class="mb-1 flex items-center gap-2">
+                  <div class="mb-1 flex flex-wrap items-center gap-2">
                     <h3 class="text-lg font-semibold">{{ sign.city }}</h3>
                     <Tag :value="sign.era" severity="info" />
+                    <Tag
+                      v-if="sign.tags && sign.tags.length > 0"
+                      v-for="tag in sign.tags"
+                      :key="tag.id"
+                      :value="tag.name"
+                      :severity="tag.color as any"
+                    />
                     <Tag
                       :value="sign.inUse ? '使用中' : '已停用'"
                       :severity="sign.inUse ? 'success' : 'secondary'"
@@ -417,6 +444,18 @@ async function handleToggleFavorite(sign: BusSign) {
           <div class="flex justify-between">
             <dt class="text-slate-400">年代</dt>
             <dd>{{ previewSign.era }}</dd>
+          </div>
+          <div v-if="previewSign.tags && previewSign.tags.length > 0" class="flex justify-between items-center">
+            <dt class="text-slate-400">风格标签</dt>
+            <dd class="flex flex-wrap gap-1 justify-end">
+              <Tag
+                v-for="tag in previewSign.tags"
+                :key="tag.id"
+                :value="tag.name"
+                :severity="tag.color as any"
+                size="small"
+              />
+            </dd>
           </div>
           <div class="flex justify-between">
             <dt class="text-slate-400">状态</dt>

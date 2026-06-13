@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { BusSign, BusSignInput, SignFilters, CityStats, FavoriteWithSign, FavoriteCheckResult } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, CityStats, FavoriteWithSign, FavoriteCheckResult, Tag } from '@/types/sign';
 
 const api = axios.create({
   baseURL: '/api',
@@ -7,13 +7,28 @@ const api = axios.create({
 
 /** 获取站牌列表（支持按条件筛选） */
 export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
-  const params: Record<string, string | boolean> = {};
+  const params: Record<string, string | boolean | number> = {};
   if (filters?.city) params.city = filters.city;
   if (filters?.era) params.era = filters.era;
   if (filters?.inUse !== null && filters?.inUse !== undefined) {
     params.inUse = filters.inUse;
   }
+  if (filters?.tagId !== null && filters?.tagId !== undefined) {
+    params.tagId = filters.tagId;
+  }
   const { data } = await api.get<BusSign[]>('/signs', { params });
+  return data;
+}
+
+/** 获取全部标签 */
+export async function fetchTags(): Promise<Tag[]> {
+  const { data } = await api.get<Tag[]>('/tags');
+  return data;
+}
+
+/** 创建标签 */
+export async function createTag(input: { name: string; color?: string }): Promise<Tag> {
+  const { data } = await api.post<Tag>('/tags', input);
   return data;
 }
 

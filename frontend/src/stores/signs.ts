@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, computed } from 'vue';
-import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign, Tag } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
@@ -12,7 +12,11 @@ export const useSignsStore = defineStore('signs', () => {
     city: undefined,
     era: undefined,
     inUse: false,
+    tagId: undefined,
   });
+
+  const tags = ref<Tag[]>([]);
+  const tagsLoading = ref(false);
 
   const favorites = ref<FavoriteWithSign[]>([]);
   const favoritesLoading = ref(false);
@@ -30,6 +34,22 @@ export const useSignsStore = defineStore('signs', () => {
     return Array.from(set).sort();
   });
 
+  const tagOptions = computed(() => {
+    return tags.value.map((t) => ({
+      label: t.name,
+      value: t.id,
+    }));
+  });
+
+  async function loadTags() {
+    tagsLoading.value = true;
+    try {
+      tags.value = await signsApi.fetchTags();
+    } finally {
+      tagsLoading.value = false;
+    }
+  }
+
   async function loadSigns() {
     loading.value = true;
     error.value = null;
@@ -38,6 +58,9 @@ export const useSignsStore = defineStore('signs', () => {
       if (filters.city) apiFilters.city = filters.city;
       if (filters.era) apiFilters.era = filters.era;
       if (filters.inUse) apiFilters.inUse = true;
+      if (filters.tagId !== undefined && filters.tagId !== null) {
+        apiFilters.tagId = filters.tagId;
+      }
       signs.value = await signsApi.fetchSigns(apiFilters);
       if (allSigns.value.length === 0) {
         allSigns.value = await signsApi.fetchSigns();
@@ -85,6 +108,7 @@ export const useSignsStore = defineStore('signs', () => {
     filters.city = undefined;
     filters.era = undefined;
     filters.inUse = false;
+    filters.tagId = undefined;
     await loadSigns();
   }
 
@@ -117,12 +141,16 @@ export const useSignsStore = defineStore('signs', () => {
     loading,
     error,
     filters,
+    tags,
+    tagsLoading,
+    tagOptions,
     cityOptions,
     eraOptions,
     favorites,
     favoritesLoading,
     favoriteSignIds,
     loadSigns,
+    loadTags,
     loadFavorites,
     toggleFavorite,
     isFavorited,

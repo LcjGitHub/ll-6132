@@ -147,6 +147,15 @@ function formatDate(dateStr: string): string {
               <h3 class="text-lg font-semibold text-slate-800">{{ fav.sign.city }}</h3>
               <span class="text-sm text-slate-400">{{ fav.sign.era }}</span>
             </div>
+            <div v-if="fav.sign.tags && fav.sign.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
+              <Tag
+                v-for="tag in fav.sign.tags"
+                :key="tag.id"
+                :value="tag.name"
+                :severity="tag.color as any"
+                size="small"
+              />
+            </div>
             <p class="mb-1 text-xs text-slate-400">
               收藏于 {{ formatDate(fav.createdAt) }}
             </p>
