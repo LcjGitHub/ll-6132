@@ -119,8 +119,6 @@ export const useSignsStore = defineStore('signs', () => {
     filters.era = undefined;
     filters.inUse = false;
     filters.tagId = undefined;
-    sortBy.value = 'id';
-    sortOrder.value = 'asc';
     await loadSigns();
   }
 
