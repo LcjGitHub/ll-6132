@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -38,6 +38,13 @@ const layoutOptions = [
 ];
 
 const keywordInput = ref('');
+const keywordClearPending = ref(false);
+
+watch(keywordInput, (newVal, oldVal) => {
+  if (oldVal && oldVal.trim() !== '' && newVal.trim() === '' && !keywordClearPending.value) {
+    handleKeywordClear();
+  }
+});
 
 onMounted(async () => {
   try {
@@ -110,9 +117,24 @@ async function handleKeywordSearch() {
   await store.setFilter('keyword', trimmed || undefined);
 }
 
-function handleKeywordClear() {
+async function handleKeywordClear() {
+  keywordClearPending.value = true;
   keywordInput.value = '';
-  store.setFilter('keyword', undefined);
+  try {
+    await store.setFilter('keyword', undefined);
+  } finally {
+    keywordClearPending.value = false;
+  }
+}
+
+async function handleResetFilters() {
+  keywordClearPending.value = true;
+  keywordInput.value = '';
+  try {
+    await store.resetFilters();
+  } finally {
+    keywordClearPending.value = false;
+  }
 }
 
 /** 打开快速预览 Dialog */
@@ -236,9 +258,10 @@ async function onPageChange(event: { page: number; rows: number; first: number }
               />
               <Button icon="pi pi-search" label="搜索" @click="handleKeywordSearch" />
               <Button
-                v-if="store.filters.keyword"
+                v-if="store.filters.keyword || keywordClearPending"
                 icon="pi pi-times"
                 outlined
+                :disabled="keywordClearPending"
                 @click="handleKeywordClear"
               />
             </div>
@@ -285,11 +308,12 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             <label class="text-sm font-medium text-slate-600">仅显示使用中</label>
           </div>
           <Button
-            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId || store.filters.keyword"
+            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId || store.filters.keyword || keywordClearPending"
             label="重置筛选"
             icon="pi pi-refresh"
             outlined
-            @click="store.resetFilters(); keywordInput = ''"
+            :disabled="keywordClearPending"
+            @click="handleResetFilters"
           />
         </div>
       </div>
