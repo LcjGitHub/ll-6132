@@ -78,20 +78,28 @@ function goToCity(city: string) {
       <template v-else>
         <section class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Card class="text-center">
-            <p class="text-sm text-slate-500">收录城市</p>
-            <p class="mt-2 text-3xl font-bold text-brand-600">{{ totalCities }}</p>
+            <template #content>
+              <p class="text-sm text-slate-500">收录城市</p>
+              <p class="mt-2 text-3xl font-bold text-brand-600">{{ totalCities }}</p>
+            </template>
           </Card>
           <Card class="text-center">
-            <p class="text-sm text-slate-500">站牌总数</p>
-            <p class="mt-2 text-3xl font-bold text-slate-800">{{ totalSigns }}</p>
+            <template #content>
+              <p class="text-sm text-slate-500">站牌总数</p>
+              <p class="mt-2 text-3xl font-bold text-slate-800">{{ totalSigns }}</p>
+            </template>
           </Card>
           <Card class="text-center">
-            <p class="text-sm text-slate-500">使用中</p>
-            <p class="mt-2 text-3xl font-bold text-green-600">{{ totalInUse }}</p>
+            <template #content>
+              <p class="text-sm text-slate-500">使用中</p>
+              <p class="mt-2 text-3xl font-bold text-green-600">{{ totalInUse }}</p>
+            </template>
           </Card>
           <Card class="text-center">
-            <p class="text-sm text-slate-500">使用率</p>
-            <p class="mt-2 text-3xl font-bold text-blue-600">{{ inUseRatio }}%</p>
+            <template #content>
+              <p class="text-sm text-slate-500">使用率</p>
+              <p class="mt-2 text-3xl font-bold text-blue-600">{{ inUseRatio }}%</p>
+            </template>
           </Card>
         </section>
 

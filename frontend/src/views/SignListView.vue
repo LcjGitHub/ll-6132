@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import DataView from 'primevue/dataview';
@@ -17,6 +17,7 @@ import type { BusSign } from '@/types/sign';
 
 const store = useSignsStore();
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const confirm = useConfirm();
 
@@ -33,6 +34,10 @@ const editingSign = ref<BusSign | null>(null);
 
 onMounted(async () => {
   try {
+    const cityQuery = route.query.city;
+    if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
+      store.filters.city = cityQuery;
+    }
     await store.loadSigns();
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
