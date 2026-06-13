@@ -204,6 +204,8 @@ async function handleToggleFavorite(sign: BusSign) {
             <Dropdown
               v-model="store.filters.tagId"
               :options="store.tagOptions"
+              option-label="label"
+              option-value="value"
               placeholder="全部标签"
               show-clear
               class="w-40"

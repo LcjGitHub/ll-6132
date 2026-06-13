@@ -60,7 +60,7 @@ function rowToSign(row: DbRow, includeTags = true): BusSign {
 function setSignTags(signId: number, tagIds: number[] | undefined) {
   db.prepare('DELETE FROM sign_tags WHERE sign_id = ?').run(signId);
   if (!tagIds || tagIds.length === 0) return;
-  const uniqueIds = Array.from(new Set(tagIds)).slice(0, 3);
+  const uniqueIds = Array.from(new Set(tagIds));
   const insert = db.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
   for (const tagId of uniqueIds) {
     const tagExists = db.prepare('SELECT id FROM tags WHERE id = ?').get(tagId);
@@ -68,6 +68,16 @@ function setSignTags(signId: number, tagIds: number[] | undefined) {
       insert.run(signId, tagId);
     }
   }
+}
+
+const MAX_TAGS_PER_SIGN = 3;
+
+function validateTagIds(tagIds: number[] | undefined): string | null {
+  if (!tagIds || tagIds.length === 0) return null;
+  if (tagIds.length > MAX_TAGS_PER_SIGN) {
+    return `每条站牌最多绑定 ${MAX_TAGS_PER_SIGN} 个标签，当前提交了 ${tagIds.length} 个`;
+  }
+  return null;
 }
 
 /** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态、标签筛选） */
@@ -146,6 +156,11 @@ router.post('/', (req: Request, res: Response) => {
     res.status(400).json({ error: '缺少必填字段' });
     return;
   }
+  const tagError = validateTagIds(body.tagIds);
+  if (tagError) {
+    res.status(400).json({ error: tagError });
+    return;
+  }
 
   const result = db
     .prepare(
@@ -170,6 +185,12 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   const body = req.body as BusSignInput;
+  const tagError = validateTagIds(body.tagIds);
+  if (tagError) {
+    res.status(400).json({ error: tagError });
+    return;
+  }
+
   db.prepare(
     `UPDATE signs SET city = ?, style_description = ?, era = ?, in_use = ?, image_url = ?
      WHERE id = ?`

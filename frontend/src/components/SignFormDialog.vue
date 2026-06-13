@@ -132,15 +132,13 @@ async function handleSubmit() {
           :options="store.tagOptions"
           option-label="label"
           option-value="value"
+          :selection-limit="maxTags"
           :max-selected-labels="maxTags"
           placeholder="选择标签..."
           display="chip"
           class="w-full"
           :filter="store.tags.length > 8"
         />
-        <p v-if="form.tagIds.length > maxTags" class="mt-1 text-xs text-red-500">
-          最多只能选择 {{ maxTags }} 个标签
-        </p>
       </div>
       <div>
         <label class="mb-1 block text-sm font-medium text-slate-600">样式描述</label>
