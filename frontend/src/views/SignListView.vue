@@ -33,34 +33,33 @@ const previewVisible = ref(false);
 const formVisible = ref(false);
 const editingSign = ref<BusSign | null>(null);
 
-const selectedIds = ref<Set<number>>(new Set());
-const selectedCount = computed(() => selectedIds.value.size);
+const selectedIds = ref<number[]>([]);
+const selectedCount = computed(() => selectedIds.value.length);
 const compareDisabled = computed(() => selectedCount.value !== 2);
 
 function isSelected(id: number): boolean {
-  return selectedIds.value.has(id);
+  return selectedIds.value.includes(id);
 }
 
 function toggleSelect(id: number) {
-  if (selectedIds.value.has(id)) {
-    selectedIds.value.delete(id);
+  const idx = selectedIds.value.indexOf(id);
+  if (idx !== -1) {
+    selectedIds.value.splice(idx, 1);
   } else {
-    if (selectedIds.value.size >= 2) {
+    if (selectedIds.value.length >= 2) {
       toast.add({ severity: 'warn', summary: '最多只能对比两条站牌', life: 2500 });
       return;
     }
-    selectedIds.value.add(id);
+    selectedIds.value.push(id);
   }
-  selectedIds.value = new Set(selectedIds.value);
 }
 
 function clearSelection() {
-  selectedIds.value = new Set();
+  selectedIds.value = [];
 }
 
 function goCompare() {
-  const ids = Array.from(selectedIds.value);
-  router.push({ name: 'sign-compare', query: { ids: ids.join(',') } });
+  router.push({ name: 'sign-compare', query: { ids: selectedIds.value.join(',') } });
 }
 
 onMounted(async () => {
@@ -295,12 +294,11 @@ async function handleToggleFavorite(sign: BusSign) {
                 />
                 <div
                   class="absolute bottom-2 left-2 z-10 rounded-md bg-white/90 p-1.5 shadow-sm"
-                  @click.stop
                 >
                   <Checkbox
                     :modelValue="isSelected(sign.id)"
                     binary
-                    @change="toggleSelect(sign.id)"
+                    @update:modelValue="toggleSelect(sign.id)"
                   />
                 </div>
               </div>
@@ -339,7 +337,7 @@ async function handleToggleFavorite(sign: BusSign) {
                 <Checkbox
                   :modelValue="isSelected(sign.id)"
                   binary
-                  @change="toggleSelect(sign.id)"
+                  @update:modelValue="toggleSelect(sign.id)"
                 />
               </div>
               <div class="relative shrink-0 overflow-hidden rounded-lg">
