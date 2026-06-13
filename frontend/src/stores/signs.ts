@@ -1,25 +1,44 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import type { BusSign, BusSignInput } from '@/types/sign';
+import { ref, reactive } from 'vue';
+import type { BusSign, BusSignInput, SignFilters } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
   const signs = ref<BusSign[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const filters = reactive<SignFilters>({
+    city: undefined,
+    era: undefined,
+    inUse: null,
+  });
 
-  /** 加载全部站牌 */
+  /** 加载站牌列表（应用当前筛选条件） */
   async function loadSigns() {
     loading.value = true;
     error.value = null;
     try {
-      signs.value = await signsApi.fetchSigns();
+      signs.value = await signsApi.fetchSigns(filters);
     } catch (e) {
       error.value = '加载站牌列表失败';
       throw e;
     } finally {
       loading.value = false;
     }
+  }
+
+  /** 设置单个筛选条件并重新加载 */
+  async function setFilter<K extends keyof SignFilters>(key: K, value: SignFilters[K]) {
+    filters[key] = value;
+    await loadSigns();
+  }
+
+  /** 重置所有筛选条件并重新加载 */
+  async function resetFilters() {
+    filters.city = undefined;
+    filters.era = undefined;
+    filters.inUse = null;
+    await loadSigns();
   }
 
   /** 根据 ID 获取站牌（优先从缓存读取） */
@@ -48,5 +67,5 @@ export const useSignsStore = defineStore('signs', () => {
     signs.value = signs.value.filter((s) => s.id !== id);
   }
 
-  return { signs, loading, error, loadSigns, getById, addSign, editSign, removeSign };
+  return { signs, loading, error, filters, loadSigns, setFilter, resetFilters, getById, addSign, editSign, removeSign };
 });

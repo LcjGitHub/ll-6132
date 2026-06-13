@@ -16,3 +16,10 @@ export interface BusSignInput {
   inUse: boolean;
   imageUrl: string;
 }
+
+/** 站牌筛选条件 */
+export interface SignFilters {
+  city?: string;
+  era?: string;
+  inUse?: boolean | null;
+}

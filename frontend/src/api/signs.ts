@@ -1,13 +1,19 @@
 import axios from 'axios';
-import type { BusSign, BusSignInput } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters } from '@/types/sign';
 
 const api = axios.create({
   baseURL: '/api',
 });
 
-/** 获取全部站牌 */
-export async function fetchSigns(): Promise<BusSign[]> {
-  const { data } = await api.get<BusSign[]>('/signs');
+/** 获取站牌列表（支持按条件筛选） */
+export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
+  const params: Record<string, string | boolean> = {};
+  if (filters?.city) params.city = filters.city;
+  if (filters?.era) params.era = filters.era;
+  if (filters?.inUse !== null && filters?.inUse !== undefined) {
+    params.inUse = filters.inUse;
+  }
+  const { data } = await api.get<BusSign[]>('/signs', { params });
   return data;
 }
 

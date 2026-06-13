@@ -41,6 +41,8 @@ npm run dev
 
 后端运行于 **http://localhost:4000**，首次启动自动创建数据库并插入 5 条 seed 数据。
 
+> **注意**：必须先启动后端，再访问前端，否则图鉴列表为空。`npm install` 会自动下载 SQLite 原生模块；若仍失败，可手动执行 `node scripts/install-better-sqlite3.js`。
+
 ### 2. 启动前端
 
 另开终端：

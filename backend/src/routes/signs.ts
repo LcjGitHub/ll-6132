@@ -25,9 +25,32 @@ function rowToSign(row: DbRow): BusSign {
   };
 }
 
-/** GET /api/signs — 获取全部站牌 */
-router.get('/', (_req: Request, res: Response) => {
-  const rows = db.prepare('SELECT * FROM signs ORDER BY id').all() as DbRow[];
+/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态筛选） */
+router.get('/', (req: Request, res: Response) => {
+  const { city, era, inUse } = req.query;
+
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (typeof city === 'string' && city.trim() !== '') {
+    conditions.push('city = ?');
+    params.push(city);
+  }
+  if (typeof era === 'string' && era.trim() !== '') {
+    conditions.push('era = ?');
+    params.push(era);
+  }
+  if (inUse !== undefined && inUse !== '') {
+    const inUseVal = inUse === 'true' || inUse === '1' ? 1 : 0;
+    conditions.push('in_use = ?');
+    params.push(inUseVal);
+  }
+
+  const sql = conditions.length > 0
+    ? `SELECT * FROM signs WHERE ${conditions.join(' AND ')} ORDER BY id`
+    : 'SELECT * FROM signs ORDER BY id';
+
+  const rows = db.prepare(sql).all(...params) as DbRow[];
   res.json(rows.map(rowToSign));
 });
 

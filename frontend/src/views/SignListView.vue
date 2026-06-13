@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import DataView from 'primevue/dataview';
 import SelectButton from 'primevue/selectbutton';
+import Dropdown from 'primevue/dropdown';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
@@ -23,6 +24,24 @@ const layoutOptions = [
   { label: '网格', value: 'grid', icon: 'pi pi-th-large' },
   { label: '列表', value: 'list', icon: 'pi pi-list' },
 ];
+
+const inUseOptions = [
+  { label: '全部', value: null },
+  { label: '使用中', value: true },
+  { label: '已停用', value: false },
+];
+
+const cityOptions = computed(() => {
+  const set = new Set<string>();
+  store.signs.forEach((s) => set.add(s.city));
+  return Array.from(set).sort();
+});
+
+const eraOptions = computed(() => {
+  const set = new Set<string>();
+  store.signs.forEach((s) => set.add(s.era));
+  return Array.from(set).sort();
+});
 
 const previewSign = ref<BusSign | null>(null);
 const previewVisible = ref(false);
@@ -103,6 +122,54 @@ function onFormSaved() {
     </header>
 
     <main class="mx-auto max-w-6xl px-4 py-8">
+      <!-- 筛选栏 -->
+      <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-end gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">城市</label>
+            <Dropdown
+              v-model="store.filters.city"
+              :options="cityOptions"
+              placeholder="全部城市"
+              show-clear
+              filter
+              filter-placeholder="搜索城市"
+              class="w-40"
+              @change="store.setFilter('city', store.filters.city)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">年代</label>
+            <Dropdown
+              v-model="store.filters.era"
+              :options="eraOptions"
+              placeholder="全部年代"
+              show-clear
+              class="w-40"
+              @change="store.setFilter('era', store.filters.era)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">使用状态</label>
+            <SelectButton
+              v-model="store.filters.inUse"
+              :options="inUseOptions"
+              option-label="label"
+              option-value="value"
+              data-key="value"
+              @change="store.setFilter('inUse', store.filters.inUse)"
+            />
+          </div>
+          <Button
+            v-if="store.filters.city || store.filters.era || store.filters.inUse !== null"
+            label="重置筛选"
+            icon="pi pi-refresh"
+            outlined
+            @click="store.resetFilters()"
+          />
+        </div>
+      </div>
+
       <!-- 工具栏 -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <p class="text-slate-600">
