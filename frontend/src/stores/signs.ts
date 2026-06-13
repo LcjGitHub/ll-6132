@@ -156,7 +156,7 @@ export const useSignsStore = defineStore('signs', () => {
 
   async function addSign(input: BusSignInput) {
     const created = await signsApi.createSign(input);
-    signs.value.push(created);
+    await loadSigns();
     return created;
   }
 
@@ -169,8 +169,11 @@ export const useSignsStore = defineStore('signs', () => {
 
   async function removeSign(id: number) {
     await signsApi.deleteSign(id);
-    signs.value = signs.value.filter((s) => s.id !== id);
     favorites.value = favorites.value.filter((f) => f.signId !== id);
+    if (signs.value.length === 1 && page.value > 1) {
+      page.value -= 1;
+    }
+    await loadSigns();
   }
 
   return {

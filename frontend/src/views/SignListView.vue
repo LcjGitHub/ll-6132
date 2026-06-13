@@ -472,7 +472,7 @@ async function onPageChange(event: { page: number; rows: number; first: number }
 
       <!-- 分页 -->
       <div
-        v-if="store.total > store.pageSize"
+        v-if="store.total > 0"
         class="mt-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
         <div class="text-sm text-slate-500">
@@ -480,10 +480,29 @@ async function onPageChange(event: { page: number; rows: number; first: number }
           <span class="font-medium text-slate-700">{{ store.totalPages }}</span> 页
         </div>
         <Paginator
-          :rows="6"
+          :rows="store.pageSize"
           :total-records="store.total"
           :first="(store.page - 1) * store.pageSize"
           :rows-per-page-options="[6, 12, 24, 48]"
+          :template="{
+            layout: 'FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown',
+            FirstPageLink: {
+              tooltip: '首页',
+            },
+            PrevPageLink: {
+              tooltip: '上一页',
+            },
+            NextPageLink: {
+              tooltip: '下一页',
+            },
+            LastPageLink: {
+              tooltip: '末页',
+            },
+            RowsPerPageDropdown: {
+              'aria-label': '每页条数',
+              showCurrentPageReport: false,
+            },
+          }"
           @page="onPageChange"
         />
       </div>
