@@ -41,6 +41,16 @@ export interface SignFilters {
   tagId?: number;
   sortBy?: SortField;
   sortOrder?: SortOrder;
+  page?: number;
+  pageSize?: number;
+}
+
+/** 分页响应 */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /** 城市站牌统计数据 */

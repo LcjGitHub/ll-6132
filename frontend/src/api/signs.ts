@@ -1,12 +1,20 @@
 import axios from 'axios';
-import type { BusSign, BusSignInput, SignFilters, CityStats, FavoriteWithSign, FavoriteCheckResult, Tag } from '@/types/sign';
+import type {
+  BusSign,
+  BusSignInput,
+  SignFilters,
+  CityStats,
+  FavoriteWithSign,
+  FavoriteCheckResult,
+  Tag,
+  PaginatedResponse,
+} from '@/types/sign';
 
 const api = axios.create({
   baseURL: '/api',
 });
 
-/** 获取站牌列表（支持按条件筛选和排序） */
-export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
+function buildFilterParams(filters?: SignFilters): Record<string, string | boolean | number> {
   const params: Record<string, string | boolean | number> = {};
   if (filters?.city) params.city = filters.city;
   if (filters?.era) params.era = filters.era;
@@ -18,7 +26,26 @@ export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
   }
   if (filters?.sortBy) params.sortBy = filters.sortBy;
   if (filters?.sortOrder) params.sortOrder = filters.sortOrder;
+  return params;
+}
+
+/** 获取站牌列表（支持按条件筛选和排序，返回全部数据） */
+export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
+  const params = buildFilterParams(filters);
   const { data } = await api.get<BusSign[]>('/signs', { params });
+  return data;
+}
+
+/** 获取分页站牌列表 */
+export async function fetchSignsPaginated(
+  page: number,
+  pageSize: number,
+  filters?: SignFilters
+): Promise<PaginatedResponse<BusSign>> {
+  const params = buildFilterParams(filters);
+  params.page = page;
+  params.pageSize = pageSize;
+  const { data } = await api.get<PaginatedResponse<BusSign>>('/signs', { params });
   return data;
 }
 

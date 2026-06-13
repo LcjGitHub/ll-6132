@@ -12,6 +12,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import Dialog from 'primevue/dialog';
+import Paginator from 'primevue/paginator';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import { useSignsStore } from '@/stores/signs';
 import type { BusSign, SortField, SortOrder } from '@/types/sign';
@@ -162,6 +163,15 @@ async function handleToggleFavorite(sign: BusSign) {
     toast.add({ severity: 'error', summary: '收藏操作失败', life: 3000 });
   }
 }
+
+/** 分页变化处理 */
+async function onPageChange(event: { page: number; rows: number; first: number }) {
+  if (event.rows !== store.pageSize) {
+    await store.setPageSize(event.rows);
+  } else {
+    await store.setPage(event.page + 1);
+  }
+}
 </script>
 
 <template>
@@ -256,7 +266,7 @@ async function handleToggleFavorite(sign: BusSign) {
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3">
           <p class="text-slate-600">
-            共 <span class="font-semibold text-brand-600">{{ store.signs.length }}</span> 条记录
+            共 <span class="font-semibold text-brand-600">{{ store.total }}</span> 条记录
           </p>
           <div class="flex items-center gap-2">
             <label class="text-sm font-medium text-slate-600">排序：</label>
@@ -305,7 +315,7 @@ async function handleToggleFavorite(sign: BusSign) {
 
       <!-- 空状态 -->
       <div
-        v-else-if="store.signs.length === 0"
+        v-else-if="store.total === 0"
         class="rounded-xl border-2 border-dashed border-slate-200 py-20 text-center text-slate-400"
       >
         <i class="pi pi-inbox mb-3 text-4xl" />
@@ -459,6 +469,24 @@ async function handleToggleFavorite(sign: BusSign) {
           </div>
         </template>
       </DataView>
+
+      <!-- 分页 -->
+      <div
+        v-if="store.total > store.pageSize"
+        class="mt-6 flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <div class="text-sm text-slate-500">
+          第 <span class="font-medium text-slate-700">{{ store.page }}</span> /
+          <span class="font-medium text-slate-700">{{ store.totalPages }}</span> 页
+        </div>
+        <Paginator
+          :rows="6"
+          :total-records="store.total"
+          :first="(store.page - 1) * store.pageSize"
+          :rows-per-page-options="[6, 12, 24, 48]"
+          @page="onPageChange"
+        />
+      </div>
     </main>
 
     <!-- 快速预览 Dialog -->

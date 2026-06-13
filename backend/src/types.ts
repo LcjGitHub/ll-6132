@@ -52,3 +52,11 @@ export interface Favorite {
 export interface FavoriteWithSign extends Favorite {
   sign: BusSign;
 }
+
+/** 分页响应 */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

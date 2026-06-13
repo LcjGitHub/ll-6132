@@ -6,6 +6,9 @@ import * as signsApi from '@/api/signs';
 export const useSignsStore = defineStore('signs', () => {
   const signs = ref<BusSign[]>([]);
   const allSigns = ref<BusSign[]>([]);
+  const total = ref(0);
+  const page = ref(1);
+  const pageSize = ref(6);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const sortBy = ref<SortField>('id');
@@ -23,6 +26,8 @@ export const useSignsStore = defineStore('signs', () => {
   const favorites = ref<FavoriteWithSign[]>([]);
   const favoritesLoading = ref(false);
   const favoriteSignIds = computed(() => new Set(favorites.value.map((f) => f.signId)));
+
+  const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 
   const cityOptions = computed(() => {
     const set = new Set<string>();
@@ -52,20 +57,27 @@ export const useSignsStore = defineStore('signs', () => {
     }
   }
 
+  function buildApiFilters(): SignFilters {
+    const apiFilters: SignFilters = {};
+    if (filters.city) apiFilters.city = filters.city;
+    if (filters.era) apiFilters.era = filters.era;
+    if (filters.inUse) apiFilters.inUse = true;
+    if (filters.tagId !== undefined && filters.tagId !== null) {
+      apiFilters.tagId = filters.tagId;
+    }
+    if (sortBy.value) apiFilters.sortBy = sortBy.value;
+    if (sortOrder.value) apiFilters.sortOrder = sortOrder.value;
+    return apiFilters;
+  }
+
   async function loadSigns() {
     loading.value = true;
     error.value = null;
     try {
-      const apiFilters: SignFilters = {};
-      if (filters.city) apiFilters.city = filters.city;
-      if (filters.era) apiFilters.era = filters.era;
-      if (filters.inUse) apiFilters.inUse = true;
-      if (filters.tagId !== undefined && filters.tagId !== null) {
-        apiFilters.tagId = filters.tagId;
-      }
-      if (sortBy.value) apiFilters.sortBy = sortBy.value;
-      if (sortOrder.value) apiFilters.sortOrder = sortOrder.value;
-      signs.value = await signsApi.fetchSigns(apiFilters);
+      const apiFilters = buildApiFilters();
+      const result = await signsApi.fetchSignsPaginated(page.value, pageSize.value, apiFilters);
+      signs.value = result.items;
+      total.value = result.total;
       if (allSigns.value.length === 0) {
         allSigns.value = await signsApi.fetchSigns();
       }
@@ -105,12 +117,14 @@ export const useSignsStore = defineStore('signs', () => {
 
   async function setFilter<K extends keyof SignFilters>(key: K, value: SignFilters[K]) {
     filters[key] = value;
+    page.value = 1;
     await loadSigns();
   }
 
   async function setSort(field: SortField, order: SortOrder) {
     sortBy.value = field;
     sortOrder.value = order;
+    page.value = 1;
     await loadSigns();
   }
 
@@ -119,6 +133,20 @@ export const useSignsStore = defineStore('signs', () => {
     filters.era = undefined;
     filters.inUse = false;
     filters.tagId = undefined;
+    page.value = 1;
+    await loadSigns();
+  }
+
+  async function setPage(newPage: number) {
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages.value) newPage = totalPages.value;
+    page.value = newPage;
+    await loadSigns();
+  }
+
+  async function setPageSize(newSize: number) {
+    pageSize.value = Math.max(1, newSize);
+    page.value = 1;
     await loadSigns();
   }
 
@@ -148,6 +176,10 @@ export const useSignsStore = defineStore('signs', () => {
   return {
     signs,
     allSigns,
+    total,
+    page,
+    pageSize,
+    totalPages,
     loading,
     error,
     sortBy,
@@ -169,6 +201,8 @@ export const useSignsStore = defineStore('signs', () => {
     setFilter,
     setSort,
     resetFilters,
+    setPage,
+    setPageSize,
     getById,
     addSign,
     editSign,

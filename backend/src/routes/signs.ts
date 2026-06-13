@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import db from '../db';
-import type { BusSign, BusSignInput, Tag } from '../types';
+import type { BusSign, BusSignInput, Tag, PaginatedResponse } from '../types';
 
 const router = Router();
 
@@ -80,9 +80,9 @@ function validateTagIds(tagIds: number[] | undefined): string | null {
   return null;
 }
 
-/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态、标签筛选，支持按城市名称、年代排序） */
+/** GET /api/signs — 获取站牌列表（支持筛选、排序、分页） */
 router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId, sortBy, sortOrder } = req.query;
+  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize } = req.query;
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -122,12 +122,36 @@ router.get('/', (req: Request, res: Response) => {
     order = sortOrder.toLowerCase();
   }
 
-  const orderClause = `ORDER BY s.${sortField} ${order}`;
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const sql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause}`;
+  const orderClause = `ORDER BY s.${sortField} ${order}`;
 
-  const rows = db.prepare(sql).all(...params) as DbRow[];
-  res.json(rows.map((r) => rowToSign(r, true)));
+  const usePagination = page !== undefined && pageSize !== undefined;
+
+  if (usePagination) {
+    const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+    const pageSizeNum = Math.max(1, Math.min(100, parseInt(String(pageSize), 10) || 10));
+    const offset = (pageNum - 1) * pageSizeNum;
+
+    const countSql = `SELECT COUNT(DISTINCT s.id) AS total FROM signs s ${joinClause} ${whereClause}`;
+    const countRow = db.prepare(countSql).get(...params) as { total: number };
+    const total = countRow.total;
+
+    const dataSql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause} LIMIT ? OFFSET ?`;
+    const dataParams = [...params, pageSizeNum, offset];
+    const rows = db.prepare(dataSql).all(...dataParams) as DbRow[];
+
+    const response: PaginatedResponse<BusSign> = {
+      items: rows.map((r) => rowToSign(r, true)),
+      total,
+      page: pageNum,
+      pageSize: pageSizeNum,
+    };
+    res.json(response);
+  } else {
+    const sql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause}`;
+    const rows = db.prepare(sql).all(...params) as DbRow[];
+    res.json(rows.map((r) => rowToSign(r, true)));
+  }
 });
 
 /** GET /api/signs/batch — 按编号批量查询站牌详情 */
