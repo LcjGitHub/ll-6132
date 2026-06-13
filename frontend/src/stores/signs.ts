@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, computed } from 'vue';
-import type { BusSign, BusSignInput, SignFilters } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
@@ -13,6 +13,10 @@ export const useSignsStore = defineStore('signs', () => {
     era: undefined,
     inUse: false,
   });
+
+  const favorites = ref<FavoriteWithSign[]>([]);
+  const favoritesLoading = ref(false);
+  const favoriteSignIds = computed(() => new Set(favorites.value.map((f) => f.signId)));
 
   const cityOptions = computed(() => {
     const set = new Set<string>();
@@ -46,6 +50,32 @@ export const useSignsStore = defineStore('signs', () => {
     }
   }
 
+  async function loadFavorites() {
+    favoritesLoading.value = true;
+    try {
+      favorites.value = await signsApi.fetchFavorites();
+    } finally {
+      favoritesLoading.value = false;
+    }
+  }
+
+  async function toggleFavorite(signId: number): Promise<boolean> {
+    const isFav = favoriteSignIds.value.has(signId);
+    if (isFav) {
+      await signsApi.removeFavorite(signId);
+      favorites.value = favorites.value.filter((f) => f.signId !== signId);
+      return false;
+    } else {
+      const created = await signsApi.addFavorite(signId);
+      favorites.value.unshift(created);
+      return true;
+    }
+  }
+
+  function isFavorited(signId: number): boolean {
+    return favoriteSignIds.value.has(signId);
+  }
+
   async function setFilter<K extends keyof SignFilters>(key: K, value: SignFilters[K]) {
     filters[key] = value;
     await loadSigns();
@@ -58,19 +88,16 @@ export const useSignsStore = defineStore('signs', () => {
     await loadSigns();
   }
 
-  /** 根据 ID 获取站牌（优先从缓存读取） */
   function getById(id: number): BusSign | undefined {
     return signs.value.find((s) => s.id === id);
   }
 
-  /** 新建站牌 */
   async function addSign(input: BusSignInput) {
     const created = await signsApi.createSign(input);
     signs.value.push(created);
     return created;
   }
 
-  /** 更新站牌 */
   async function editSign(id: number, input: BusSignInput) {
     const updated = await signsApi.updateSign(id, input);
     const idx = signs.value.findIndex((s) => s.id === id);
@@ -78,11 +105,32 @@ export const useSignsStore = defineStore('signs', () => {
     return updated;
   }
 
-  /** 删除站牌 */
   async function removeSign(id: number) {
     await signsApi.deleteSign(id);
     signs.value = signs.value.filter((s) => s.id !== id);
+    favorites.value = favorites.value.filter((f) => f.signId !== id);
   }
 
-  return { signs, allSigns, loading, error, filters, cityOptions, eraOptions, loadSigns, setFilter, resetFilters, getById, addSign, editSign, removeSign };
+  return {
+    signs,
+    allSigns,
+    loading,
+    error,
+    filters,
+    cityOptions,
+    eraOptions,
+    favorites,
+    favoritesLoading,
+    favoriteSignIds,
+    loadSigns,
+    loadFavorites,
+    toggleFavorite,
+    isFavorited,
+    setFilter,
+    resetFilters,
+    getById,
+    addSign,
+    editSign,
+    removeSign,
+  };
 });

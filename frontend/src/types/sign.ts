@@ -30,3 +30,17 @@ export interface CityStats {
   total: number;
   inUse: number;
 }
+
+/** 收藏记录（含站牌详情） */
+export interface FavoriteWithSign {
+  id: number;
+  signId: number;
+  createdAt: string;
+  sign: BusSign;
+}
+
+/** 收藏检查结果 */
+export interface FavoriteCheckResult {
+  favorited: boolean;
+  createdAt?: string;
+}

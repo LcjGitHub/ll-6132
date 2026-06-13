@@ -38,7 +38,7 @@ onMounted(async () => {
     if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
       store.filters.city = cityQuery;
     }
-    await store.loadSigns();
+    await Promise.all([store.loadSigns(), store.loadFavorites()]);
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
   }
@@ -92,6 +92,20 @@ function onFormSaved() {
   formVisible.value = false;
   toast.add({ severity: 'success', summary: '保存成功', life: 2000 });
 }
+
+/** 切换收藏状态 */
+async function handleToggleFavorite(sign: BusSign) {
+  try {
+    const favorited = await store.toggleFavorite(sign.id);
+    toast.add({
+      severity: 'success',
+      summary: favorited ? '已收藏' : '已取消收藏',
+      life: 2000,
+    });
+  } catch {
+    toast.add({ severity: 'error', summary: '收藏操作失败', life: 3000 });
+  }
+}
 </script>
 
 <template>
@@ -107,13 +121,22 @@ function onFormSaved() {
               <p class="mt-1 text-sm text-blue-100">收录各地公交站牌样式，记录城市公共交通的视觉记忆</p>
             </div>
           </div>
-          <Button
-            icon="pi pi-chart-bar"
-            label="数据统计"
-            outlined
-            class="!border-white/30 !text-white hover:!bg-white/10"
-            @click="router.push({ name: 'stats' })"
-          />
+          <div class="flex items-center gap-2">
+            <Button
+              icon="pi pi-heart"
+              label="我的收藏"
+              outlined
+              class="!border-white/30 !text-white hover:!bg-white/10"
+              @click="router.push({ name: 'favorites' })"
+            />
+            <Button
+              icon="pi pi-chart-bar"
+              label="数据统计"
+              outlined
+              class="!border-white/30 !text-white hover:!bg-white/10"
+              @click="router.push({ name: 'stats' })"
+            />
+          </div>
         </div>
       </div>
     </header>
@@ -211,6 +234,14 @@ function onFormSaved() {
                   :severity="sign.inUse ? 'success' : 'secondary'"
                   class="absolute right-2 top-2"
                 />
+                <Button
+                  :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                  :severity="store.isFavorited(sign.id) ? 'danger' : 'secondary'"
+                  rounded
+                  text
+                  class="absolute left-2 top-2 !bg-white/90 hover:!bg-white"
+                  @click.stop="handleToggleFavorite(sign)"
+                />
               </div>
               <div class="p-4">
                 <div class="mb-1 flex items-center justify-between">
@@ -234,11 +265,22 @@ function onFormSaved() {
               :key="sign.id"
               class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             >
-              <img
-                :src="sign.imageUrl"
-                :alt="`${sign.city}站牌`"
-                class="h-24 w-36 shrink-0 rounded-lg object-cover"
-              />
+              <div class="relative shrink-0">
+                <img
+                  :src="sign.imageUrl"
+                  :alt="`${sign.city}站牌`"
+                  class="h-24 w-36 rounded-lg object-cover"
+                />
+                <Button
+                  :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                  :severity="store.isFavorited(sign.id) ? 'danger' : 'secondary'"
+                  rounded
+                  text
+                  size="small"
+                  class="absolute left-1 top-1 !bg-white/90 hover:!bg-white"
+                  @click.stop="handleToggleFavorite(sign)"
+                />
+              </div>
               <div class="flex flex-1 flex-col justify-between">
                 <div>
                   <div class="mb-1 flex items-center gap-2">
@@ -254,6 +296,14 @@ function onFormSaved() {
                 <div class="mt-2 flex gap-2">
                   <Button label="预览" icon="pi pi-eye" size="small" text @click="openPreview(sign)" />
                   <Button label="详情" icon="pi pi-arrow-right" size="small" text @click="goDetail(sign.id)" />
+                  <Button
+                    :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
+                    :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                    :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
+                    size="small"
+                    text
+                    @click="handleToggleFavorite(sign)"
+                  />
                   <Button label="编辑" icon="pi pi-pencil" size="small" text @click="openEdit(sign)" />
                   <Button
                     label="删除"

@@ -23,3 +23,16 @@ export interface CityStats {
   total: number;
   inUse: number;
 }
+
+/** 收藏记录 */
+export interface Favorite {
+  id: number;
+  signId: number;
+  createdAt: string;
+  sign?: BusSign;
+}
+
+/** 收藏记录（包含站牌详情） */
+export interface FavoriteWithSign extends Favorite {
+  sign: BusSign;
+}

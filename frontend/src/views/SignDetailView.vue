@@ -25,7 +25,7 @@ const formVisible = ref(false);
 const signId = computed(() => Number(props.id));
 
 onMounted(async () => {
-  await loadDetail();
+  await Promise.all([loadDetail(), store.loadFavorites()]);
 });
 
 /** 加载站牌详情 */
@@ -82,6 +82,21 @@ function onFormSaved(updated: BusSign) {
   formVisible.value = false;
   toast.add({ severity: 'success', summary: '保存成功', life: 2000 });
 }
+
+/** 切换收藏状态 */
+async function handleToggleFavorite() {
+  if (!sign.value) return;
+  try {
+    const favorited = await store.toggleFavorite(sign.value.id);
+    toast.add({
+      severity: 'success',
+      summary: favorited ? '已收藏' : '已取消收藏',
+      life: 2000,
+    });
+  } catch {
+    toast.add({ severity: 'error', summary: '收藏操作失败', life: 3000 });
+  }
+}
 </script>
 
 <template>
@@ -106,11 +121,20 @@ function onFormSaved(updated: BusSign) {
 
       <template v-else-if="sign">
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <img
-            :src="sign.imageUrl"
-            :alt="`${sign.city}站牌`"
-            class="aspect-[16/9] w-full object-cover"
-          />
+          <div class="relative">
+            <img
+              :src="sign.imageUrl"
+              :alt="`${sign.city}站牌`"
+              class="aspect-[16/9] w-full object-cover"
+            />
+            <Button
+              :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+              :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
+              :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
+              class="absolute left-4 top-4"
+              @click="handleToggleFavorite"
+            />
+          </div>
           <div class="p-6 md:p-8">
             <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -153,6 +177,12 @@ function onFormSaved(updated: BusSign) {
             </section>
 
             <div class="flex gap-3">
+              <Button
+                :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
+                :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
+                @click="handleToggleFavorite"
+              />
               <Button label="编辑" icon="pi pi-pencil" @click="formVisible = true" />
               <Button label="删除" icon="pi pi-trash" severity="danger" outlined @click="confirmDelete" />
             </div>

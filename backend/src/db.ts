@@ -22,4 +22,14 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sign_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(sign_id),
+    FOREIGN KEY (sign_id) REFERENCES signs(id) ON DELETE CASCADE
+  )
+`);
+
 export default db;
