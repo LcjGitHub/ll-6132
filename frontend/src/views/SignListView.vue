@@ -223,23 +223,23 @@ async function handleToggleFavorite(sign: BusSign) {
               :key="sign.id"
               class="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
+              <div class="relative block aspect-[3/2] overflow-hidden bg-slate-100">
                 <img
                   :src="sign.imageUrl"
                   :alt="`${sign.city}站牌`"
-                  class="h-full w-full object-cover transition group-hover:scale-105"
+                  class="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
                 />
                 <Tag
                   :value="sign.inUse ? '使用中' : '已停用'"
                   :severity="sign.inUse ? 'success' : 'secondary'"
-                  class="absolute right-2 top-2"
+                  class="absolute right-2 top-2 z-10"
                 />
                 <Button
                   :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
                   :severity="store.isFavorited(sign.id) ? 'danger' : 'secondary'"
                   rounded
                   text
-                  class="absolute left-2 top-2 !bg-white/90 hover:!bg-white"
+                  class="absolute left-2 top-2 z-10 !bg-white/90 hover:!bg-white"
                   @click.stop="handleToggleFavorite(sign)"
                 />
               </div>
@@ -252,6 +252,14 @@ async function handleToggleFavorite(sign: BusSign) {
                 <div class="flex gap-2">
                   <Button label="预览" icon="pi pi-eye" size="small" outlined @click="openPreview(sign)" />
                   <Button label="详情" icon="pi pi-arrow-right" size="small" @click="goDetail(sign.id)" />
+                  <Button
+                    :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
+                    :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                    :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
+                    size="small"
+                    outlined
+                    @click="handleToggleFavorite(sign)"
+                  />
                 </div>
               </div>
             </div>
@@ -265,11 +273,11 @@ async function handleToggleFavorite(sign: BusSign) {
               :key="sign.id"
               class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             >
-              <div class="relative shrink-0">
+              <div class="relative shrink-0 overflow-hidden rounded-lg">
                 <img
                   :src="sign.imageUrl"
                   :alt="`${sign.city}站牌`"
-                  class="h-24 w-36 rounded-lg object-cover"
+                  class="block h-24 w-36 object-cover"
                 />
                 <Button
                   :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
@@ -277,7 +285,7 @@ async function handleToggleFavorite(sign: BusSign) {
                   rounded
                   text
                   size="small"
-                  class="absolute left-1 top-1 !bg-white/90 hover:!bg-white"
+                  class="absolute left-1 top-1 z-10 !bg-white/90 hover:!bg-white"
                   @click.stop="handleToggleFavorite(sign)"
                 />
               </div>

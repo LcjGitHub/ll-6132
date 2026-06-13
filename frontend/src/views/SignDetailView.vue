@@ -121,17 +121,17 @@ async function handleToggleFavorite() {
 
       <template v-else-if="sign">
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="relative">
+          <div class="relative block w-full overflow-hidden">
             <img
               :src="sign.imageUrl"
               :alt="`${sign.city}站牌`"
-              class="aspect-[16/9] w-full object-cover"
+              class="block aspect-[16/9] w-full object-cover"
             />
             <Button
               :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
               :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
               :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
-              class="absolute left-4 top-4"
+              class="absolute left-4 top-4 z-10"
               @click="handleToggleFavorite"
             />
           </div>

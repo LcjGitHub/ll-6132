@@ -122,23 +122,23 @@ function formatDate(dateStr: string): string {
           :key="fav.id"
           class="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
         >
-          <div class="relative aspect-[3/2] overflow-hidden bg-slate-100">
+          <div class="relative block aspect-[3/2] overflow-hidden bg-slate-100">
             <img
               :src="fav.sign.imageUrl"
               :alt="`${fav.sign.city}站牌`"
-              class="h-full w-full object-cover transition group-hover:scale-105"
+              class="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
             />
             <Tag
               :value="fav.sign.inUse ? '使用中' : '已停用'"
               :severity="fav.sign.inUse ? 'success' : 'secondary'"
-              class="absolute right-2 top-2"
+              class="absolute right-2 top-2 z-10"
             />
             <Button
               :icon="store.isFavorited(fav.sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
               :severity="store.isFavorited(fav.sign.id) ? 'danger' : 'secondary'"
               rounded
               text
-              class="absolute left-2 top-2 !bg-white/90 hover:!bg-white"
+              class="absolute left-2 top-2 z-10 !bg-white/90 hover:!bg-white"
               @click.stop="confirmRemoveFavorite(fav.sign)"
             />
           </div>
