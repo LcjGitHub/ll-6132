@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -7,6 +7,7 @@ import DataView from 'primevue/dataview';
 import SelectButton from 'primevue/selectbutton';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
+import Checkbox from 'primevue/checkbox';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
@@ -31,6 +32,36 @@ const previewSign = ref<BusSign | null>(null);
 const previewVisible = ref(false);
 const formVisible = ref(false);
 const editingSign = ref<BusSign | null>(null);
+
+const selectedIds = ref<Set<number>>(new Set());
+const selectedCount = computed(() => selectedIds.value.size);
+const compareDisabled = computed(() => selectedCount.value !== 2);
+
+function isSelected(id: number): boolean {
+  return selectedIds.value.has(id);
+}
+
+function toggleSelect(id: number) {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id);
+  } else {
+    if (selectedIds.value.size >= 2) {
+      toast.add({ severity: 'warn', summary: '最多只能对比两条站牌', life: 2500 });
+      return;
+    }
+    selectedIds.value.add(id);
+  }
+  selectedIds.value = new Set(selectedIds.value);
+}
+
+function clearSelection() {
+  selectedIds.value = new Set();
+}
+
+function goCompare() {
+  const ids = Array.from(selectedIds.value);
+  router.push({ name: 'sign-compare', query: { ids: ids.join(',') } });
+}
 
 onMounted(async () => {
   try {
@@ -185,9 +216,21 @@ async function handleToggleFavorite(sign: BusSign) {
 
       <!-- 工具栏 -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <p class="text-slate-600">
-          共 <span class="font-semibold text-brand-600">{{ store.signs.length }}</span> 条记录
-        </p>
+        <div class="flex items-center gap-3">
+          <p class="text-slate-600">
+            共 <span class="font-semibold text-brand-600">{{ store.signs.length }}</span> 条记录
+          </p>
+          <div v-if="selectedCount > 0" class="flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
+            <span>已选 {{ selectedCount }} / 2</span>
+            <button
+              class="ml-1 rounded-full p-0.5 hover:bg-brand-100"
+              title="清除选择"
+              @click="clearSelection"
+            >
+              <i class="pi pi-times text-xs" />
+            </button>
+          </div>
+        </div>
         <div class="flex items-center gap-3">
           <SelectButton
             v-model="layout"
@@ -195,6 +238,13 @@ async function handleToggleFavorite(sign: BusSign) {
             option-label="label"
             option-value="value"
             data-key="value"
+          />
+          <Button
+            label="对比站牌"
+            icon="pi pi-clone"
+            :disabled="compareDisabled"
+            severity="warning"
+            @click="goCompare"
           />
           <Button label="新增站牌" icon="pi pi-plus" @click="openCreate" />
         </div>
@@ -222,6 +272,7 @@ async function handleToggleFavorite(sign: BusSign) {
               v-for="sign in slotProps.items"
               :key="sign.id"
               class="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+              :class="{ 'ring-2 ring-brand-500 ring-offset-2': isSelected(sign.id) }"
             >
               <div class="relative block aspect-[3/2] overflow-hidden bg-slate-100">
                 <img
@@ -242,6 +293,16 @@ async function handleToggleFavorite(sign: BusSign) {
                   class="absolute left-2 top-2 z-10 !bg-white/90 hover:!bg-white"
                   @click.stop="handleToggleFavorite(sign)"
                 />
+                <div
+                  class="absolute bottom-2 left-2 z-10 rounded-md bg-white/90 p-1.5 shadow-sm"
+                  @click.stop
+                >
+                  <Checkbox
+                    :modelValue="isSelected(sign.id)"
+                    binary
+                    @change="toggleSelect(sign.id)"
+                  />
+                </div>
               </div>
               <div class="p-4">
                 <div class="mb-1 flex items-center justify-between">
@@ -272,7 +333,15 @@ async function handleToggleFavorite(sign: BusSign) {
               v-for="sign in slotProps.items"
               :key="sign.id"
               class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+              :class="{ 'ring-2 ring-brand-500 ring-offset-2': isSelected(sign.id) }"
             >
+              <div class="flex shrink-0 items-center pr-2">
+                <Checkbox
+                  :modelValue="isSelected(sign.id)"
+                  binary
+                  @change="toggleSelect(sign.id)"
+                />
+              </div>
               <div class="relative shrink-0 overflow-hidden rounded-lg">
                 <img
                   :src="sign.imageUrl"

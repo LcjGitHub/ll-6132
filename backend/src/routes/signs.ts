@@ -54,6 +54,28 @@ router.get('/', (req: Request, res: Response) => {
   res.json(rows.map(rowToSign));
 });
 
+/** GET /api/signs/batch — 按编号批量查询站牌详情 */
+router.get('/batch', (req: Request, res: Response) => {
+  const { ids } = req.query;
+  if (typeof ids !== 'string' || ids.trim() === '') {
+    res.status(400).json({ error: '缺少 ids 参数' });
+    return;
+  }
+  const idList = ids
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => !Number.isNaN(n) && n > 0);
+  if (idList.length === 0) {
+    res.status(400).json({ error: 'ids 参数格式错误' });
+    return;
+  }
+  const placeholders = idList.map(() => '?').join(',');
+  const rows = db
+    .prepare(`SELECT * FROM signs WHERE id IN (${placeholders}) ORDER BY id`)
+    .all(...idList) as DbRow[];
+  res.json(rows.map(rowToSign));
+});
+
 /** GET /api/signs/:id — 获取单条站牌 */
 router.get('/:id', (req: Request, res: Response) => {
   const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(req.params.id) as DbRow | undefined;

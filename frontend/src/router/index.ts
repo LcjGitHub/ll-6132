@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import('@/views/StatsView.vue'),
     },
     {
+      path: '/signs/compare',
+      name: 'sign-compare',
+      component: () => import('@/views/SignCompareView.vue'),
+    },
+    {
       path: '/signs/:id',
       name: 'sign-detail',
       component: () => import('@/views/SignDetailView.vue'),

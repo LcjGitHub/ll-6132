@@ -23,6 +23,14 @@ export async function fetchSign(id: number): Promise<BusSign> {
   return data;
 }
 
+/** 按编号批量获取站牌 */
+export async function fetchSignsBatch(ids: number[]): Promise<BusSign[]> {
+  const { data } = await api.get<BusSign[]>('/signs/batch', {
+    params: { ids: ids.join(',') },
+  });
+  return data;
+}
+
 /** 新建站牌 */
 export async function createSign(input: BusSignInput): Promise<BusSign> {
   const { data } = await api.post<BusSign>('/signs', input);
