@@ -152,6 +152,12 @@ router.get('/batch', (req: Request, res: Response) => {
   res.json(rows.map((r) => rowToSign(r, true)));
 });
 
+/** GET /api/signs/ids — 获取全部站牌编号有序列表（按 id 升序） */
+router.get('/ids', (_req: Request, res: Response) => {
+  const rows = db.prepare('SELECT id FROM signs ORDER BY id ASC').all() as { id: number }[];
+  res.json(rows.map((r) => r.id));
+});
+
 /** GET /api/signs/:id — 获取单条站牌 */
 router.get('/:id', (req: Request, res: Response) => {
   const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(req.params.id) as DbRow | undefined;

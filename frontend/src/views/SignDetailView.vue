@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -8,7 +8,7 @@ import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import { useSignsStore } from '@/stores/signs';
-import { fetchSign } from '@/api/signs';
+import { fetchSign, fetchSignIds } from '@/api/signs';
 import type { BusSign } from '@/types/sign';
 
 const props = defineProps<{ id: string }>();
@@ -21,12 +21,32 @@ const confirm = useConfirm();
 const sign = ref<BusSign | null>(null);
 const loading = ref(true);
 const formVisible = ref(false);
+const signIds = ref<number[]>([]);
 
 const signId = computed(() => Number(props.id));
 
-onMounted(async () => {
-  await Promise.all([loadDetail(), store.loadFavorites()]);
+const currentIndex = computed(() => signIds.value.indexOf(signId.value));
+const prevId = computed(() => {
+  if (currentIndex.value <= 0) return null;
+  return signIds.value[currentIndex.value - 1];
 });
+const nextId = computed(() => {
+  if (currentIndex.value === -1 || currentIndex.value >= signIds.value.length - 1) return null;
+  return signIds.value[currentIndex.value + 1];
+});
+
+onMounted(async () => {
+  await Promise.all([loadDetail(), loadSignIds(), store.loadFavorites()]);
+});
+
+/** 加载站牌编号列表 */
+async function loadSignIds() {
+  try {
+    signIds.value = await fetchSignIds();
+  } catch {
+    // 静默失败，导航按钮会隐藏
+  }
+}
 
 /** 加载站牌详情 */
 async function loadDetail() {
@@ -53,6 +73,28 @@ async function loadDetail() {
 function goBack() {
   router.push('/');
 }
+
+/** 跳转到上一条 */
+function goPrev() {
+  if (prevId.value !== null) {
+    router.push(`/signs/${prevId.value}`);
+  }
+}
+
+/** 跳转到下一条 */
+function goNext() {
+  if (nextId.value !== null) {
+    router.push(`/signs/${nextId.value}`);
+  }
+}
+
+watch(
+  () => props.id,
+  () => {
+    loadDetail();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+);
 
 /** 删除站牌 */
 function confirmDelete() {
@@ -194,6 +236,30 @@ async function handleToggleFavorite() {
               <Button label="删除" icon="pi pi-trash" severity="danger" outlined @click="confirmDelete" />
             </div>
           </div>
+        </div>
+
+        <div
+          v-if="signIds.length > 0"
+          class="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <Button
+            label="上一条"
+            icon="pi pi-chevron-left"
+            :disabled="prevId === null"
+            class="flex-1"
+            @click="goPrev"
+          />
+          <div class="text-center text-sm text-slate-500">
+            <span v-if="currentIndex !== -1">{{ currentIndex + 1 }} / {{ signIds.length }}</span>
+          </div>
+          <Button
+            label="下一条"
+            icon="pi pi-chevron-right"
+            iconPos="right"
+            :disabled="nextId === null"
+            class="flex-1"
+            @click="goNext"
+          />
         </div>
       </template>
     </main>

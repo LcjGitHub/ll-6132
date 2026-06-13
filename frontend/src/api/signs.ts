@@ -48,6 +48,12 @@ export async function fetchSignsBatch(ids: number[]): Promise<BusSign[]> {
   return data;
 }
 
+/** 获取全部站牌编号有序列表（按 id 升序） */
+export async function fetchSignIds(): Promise<number[]> {
+  const { data } = await api.get<number[]>('/signs/ids');
+  return data;
+}
+
 /** 新建站牌 */
 export async function createSign(input: BusSignInput): Promise<BusSign> {
   const { data } = await api.post<BusSign>('/signs', input);
