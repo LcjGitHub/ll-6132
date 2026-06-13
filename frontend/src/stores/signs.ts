@@ -1,24 +1,43 @@
 import { defineStore } from 'pinia';
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import type { BusSign, BusSignInput, SignFilters } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
   const signs = ref<BusSign[]>([]);
+  const allSigns = ref<BusSign[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const filters = reactive<SignFilters>({
     city: undefined,
     era: undefined,
-    inUse: null,
+    inUse: false,
   });
 
-  /** 加载站牌列表（应用当前筛选条件） */
+  const cityOptions = computed(() => {
+    const set = new Set<string>();
+    allSigns.value.forEach((s) => set.add(s.city));
+    return Array.from(set).sort();
+  });
+
+  const eraOptions = computed(() => {
+    const set = new Set<string>();
+    allSigns.value.forEach((s) => set.add(s.era));
+    return Array.from(set).sort();
+  });
+
   async function loadSigns() {
     loading.value = true;
     error.value = null;
     try {
-      signs.value = await signsApi.fetchSigns(filters);
+      const apiFilters: SignFilters = {};
+      if (filters.city) apiFilters.city = filters.city;
+      if (filters.era) apiFilters.era = filters.era;
+      if (filters.inUse) apiFilters.inUse = true;
+      signs.value = await signsApi.fetchSigns(apiFilters);
+      if (allSigns.value.length === 0) {
+        allSigns.value = await signsApi.fetchSigns();
+      }
     } catch (e) {
       error.value = '加载站牌列表失败';
       throw e;
@@ -27,17 +46,15 @@ export const useSignsStore = defineStore('signs', () => {
     }
   }
 
-  /** 设置单个筛选条件并重新加载 */
   async function setFilter<K extends keyof SignFilters>(key: K, value: SignFilters[K]) {
     filters[key] = value;
     await loadSigns();
   }
 
-  /** 重置所有筛选条件并重新加载 */
   async function resetFilters() {
     filters.city = undefined;
     filters.era = undefined;
-    filters.inUse = null;
+    filters.inUse = false;
     await loadSigns();
   }
 
@@ -67,5 +84,5 @@ export const useSignsStore = defineStore('signs', () => {
     signs.value = signs.value.filter((s) => s.id !== id);
   }
 
-  return { signs, loading, error, filters, loadSigns, setFilter, resetFilters, getById, addSign, editSign, removeSign };
+  return { signs, allSigns, loading, error, filters, cityOptions, eraOptions, loadSigns, setFilter, resetFilters, getById, addSign, editSign, removeSign };
 });

@@ -21,5 +21,5 @@ export interface BusSignInput {
 export interface SignFilters {
   city?: string;
   era?: string;
-  inUse?: boolean | null;
+  inUse?: boolean;
 }
