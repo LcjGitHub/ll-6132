@@ -4,6 +4,8 @@ import type {
   BusSignInput,
   SignFilters,
   CityStats,
+  EraStats,
+  StatsResponse,
   FavoriteWithSign,
   FavoriteCheckResult,
   Tag,
@@ -99,9 +101,21 @@ export async function deleteSign(id: number): Promise<void> {
   await api.delete(`/signs/${id}`);
 }
 
+/** 获取综合统计数据（城市+年代分布） */
+export async function fetchStats(): Promise<StatsResponse> {
+  const { data } = await api.get<StatsResponse>('/stats');
+  return data;
+}
+
 /** 获取按城市汇总的统计数据 */
 export async function fetchCityStats(): Promise<CityStats[]> {
   const { data } = await api.get<CityStats[]>('/stats/cities');
+  return data;
+}
+
+/** 获取按年代汇总的统计数据 */
+export async function fetchEraStats(): Promise<EraStats[]> {
+  const { data } = await api.get<EraStats[]>('/stats/eras');
   return data;
 }
 

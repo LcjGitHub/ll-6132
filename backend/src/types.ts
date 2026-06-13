@@ -40,6 +40,19 @@ export interface CityStats {
   inUse: number;
 }
 
+/** 年代站牌统计数据 */
+export interface EraStats {
+  era: string;
+  total: number;
+  inUse: number;
+}
+
+/** 综合统计响应 */
+export interface StatsResponse {
+  cities: CityStats[];
+  eras: EraStats[];
+}
+
 /** 收藏记录 */
 export interface Favorite {
   id: number;

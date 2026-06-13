@@ -52,6 +52,10 @@ onMounted(async () => {
     if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
       store.filters.city = cityQuery;
     }
+    const eraQuery = route.query.era;
+    if (typeof eraQuery === 'string' && eraQuery.trim() !== '') {
+      store.filters.era = eraQuery;
+    }
     keywordInput.value = store.filters.keyword || '';
     await Promise.all([store.loadSigns(), store.loadFavorites(), store.loadTags()]);
   } catch {

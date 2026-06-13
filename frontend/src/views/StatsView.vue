@@ -9,22 +9,20 @@ import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ProgressBar from 'primevue/progressbar';
-import { fetchCityStats } from '@/api/signs';
-import type { CityStats } from '@/types/sign';
+import { fetchStats } from '@/api/signs';
+import type { CityStats, EraStats } from '@/types/sign';
 
 const router = useRouter();
 const toast = useToast();
 
-const stats = ref<CityStats[]>([]);
+const cityStats = ref<CityStats[]>([]);
+const eraStats = ref<EraStats[]>([]);
 const loading = ref(true);
 
-const totalSigns = computed(() => stats.value.reduce((sum, s) => sum + s.total, 0));
-const totalInUse = computed(() => stats.value.reduce((sum, s) => sum + s.inUse, 0));
-const totalCities = computed(() => stats.value.length);
-const inUseRatio = computed(() => {
-  if (totalSigns.value === 0) return 0;
-  return Math.round((totalInUse.value / totalSigns.value) * 100);
-});
+const totalSigns = computed(() => cityStats.value.reduce((sum, s) => sum + s.total, 0));
+const totalInUse = computed(() => cityStats.value.reduce((sum, s) => sum + s.inUse, 0));
+const totalCities = computed(() => cityStats.value.length);
+const totalEras = computed(() => eraStats.value.length);
 
 function getPercentage(total: number, part: number): number {
   if (total === 0) return 0;
@@ -36,9 +34,21 @@ function getCityPercentage(total: number): number {
   return Math.round((total / totalSigns.value) * 100);
 }
 
+function getEraPercentage(total: number): number {
+  if (totalSigns.value === 0) return 0;
+  return Math.round((total / totalSigns.value) * 100);
+}
+
+const maxEraTotal = computed(() => {
+  if (eraStats.value.length === 0) return 0;
+  return Math.max(...eraStats.value.map((e) => e.total));
+});
+
 onMounted(async () => {
   try {
-    stats.value = await fetchCityStats();
+    const data = await fetchStats();
+    cityStats.value = data.cities;
+    eraStats.value = data.eras;
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '加载统计数据失败', life: 3000 });
   } finally {
@@ -52,6 +62,10 @@ function goBack() {
 
 function goToCity(city: string) {
   router.push({ name: 'home', query: { city } });
+}
+
+function goToEra(era: string) {
+  router.push({ name: 'home', query: { era } });
 }
 </script>
 
@@ -85,6 +99,12 @@ function goToCity(city: string) {
           </Card>
           <Card class="text-center">
             <template #content>
+              <p class="text-sm text-slate-500">年代跨度</p>
+              <p class="mt-2 text-3xl font-bold text-purple-600">{{ totalEras }}</p>
+            </template>
+          </Card>
+          <Card class="text-center">
+            <template #content>
               <p class="text-sm text-slate-500">站牌总数</p>
               <p class="mt-2 text-3xl font-bold text-slate-800">{{ totalSigns }}</p>
             </template>
@@ -95,19 +115,13 @@ function goToCity(city: string) {
               <p class="mt-2 text-3xl font-bold text-green-600">{{ totalInUse }}</p>
             </template>
           </Card>
-          <Card class="text-center">
-            <template #content>
-              <p class="text-sm text-slate-500">使用率</p>
-              <p class="mt-2 text-3xl font-bold text-blue-600">{{ inUseRatio }}%</p>
-            </template>
-          </Card>
         </section>
 
         <section class="mb-8">
           <h2 class="mb-4 text-lg font-semibold text-slate-800">各城市站牌分布</h2>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card
-              v-for="item in stats"
+              v-for="item in cityStats"
               :key="item.city"
               class="cursor-pointer transition hover:shadow-md"
               @click="goToCity(item.city)"
@@ -141,10 +155,79 @@ function goToCity(city: string) {
           </div>
         </section>
 
+        <section class="mb-8">
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">各年代站牌分布</h2>
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="space-y-4">
+              <div
+                v-for="item in eraStats"
+                :key="item.era"
+                class="group cursor-pointer rounded-lg p-3 transition hover:bg-slate-50"
+                @click="goToEra(item.era)"
+              >
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <span class="text-base font-semibold text-slate-800">{{ item.era }}</span>
+                    <Tag :value="`${item.total} 个`" severity="info" />
+                    <Tag
+                      v-if="item.inUse > 0"
+                      :value="`使用中 ${item.inUse} 个`"
+                      severity="success"
+                    />
+                    <Tag
+                      v-if="item.total - item.inUse > 0"
+                      :value="`已停用 ${item.total - item.inUse} 个`"
+                      severity="secondary"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-slate-500">{{ getEraPercentage(item.total) }}%</span>
+                    <i class="pi pi-external-link text-slate-400 transition group-hover:text-brand-600" />
+                  </div>
+                </div>
+                <div class="flex h-6 overflow-hidden rounded-md bg-slate-100">
+                  <div
+                    class="flex items-center justify-end bg-green-500 transition-all"
+                    :style="{ width: maxEraTotal > 0 ? `${(item.inUse / maxEraTotal) * 100}%` : '0%' }"
+                  >
+                    <span
+                      v-if="item.inUse > 0"
+                      class="px-2 text-xs font-medium text-white"
+                    >
+                      {{ item.inUse }}
+                    </span>
+                  </div>
+                  <div
+                    class="flex items-center justify-end bg-slate-400 transition-all"
+                    :style="{ width: maxEraTotal > 0 ? `${((item.total - item.inUse) / maxEraTotal) * 100}%` : '0%' }"
+                  >
+                    <span
+                      v-if="item.total - item.inUse > 0"
+                      class="px-2 text-xs font-medium text-white"
+                    >
+                      {{ item.total - item.inUse }}
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-2 flex justify-between text-xs text-slate-500">
+                  <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+                    使用中
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-slate-400"></span>
+                    已停用
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section>
-          <h2 class="mb-4 text-lg font-semibold text-slate-800">详细统计表</h2>
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">城市统计详情</h2>
           <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <DataTable :value="stats" stripedRows>
+            <DataTable :value="cityStats" stripedRows>
               <Column field="city" header="城市" style="width: 25%">
                 <template #body="slotProps">
                   <span class="font-medium text-slate-800">{{ slotProps.data.city }}</span>
