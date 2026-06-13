@@ -7,6 +7,7 @@ import DataView from 'primevue/dataview';
 import SelectButton from 'primevue/selectbutton';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
+import InputText from 'primevue/inputtext';
 import Checkbox from 'primevue/checkbox';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -35,6 +36,21 @@ const layoutOptions = [
   { label: '网格', value: 'grid', icon: 'pi pi-th-large' },
   { label: '列表', value: 'list', icon: 'pi pi-list' },
 ];
+
+const keywordInput = ref('');
+
+onMounted(async () => {
+  try {
+    const cityQuery = route.query.city;
+    if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
+      store.filters.city = cityQuery;
+    }
+    keywordInput.value = store.filters.keyword || '';
+    await Promise.all([store.loadSigns(), store.loadFavorites(), store.loadTags()]);
+  } catch {
+    toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
+  }
+});
 
 const sortOptions: SortOption[] = [
   { label: '按编号升序', value: 'id-asc', sortBy: 'id', sortOrder: 'asc' },
@@ -89,17 +105,15 @@ function goCompare() {
   router.push({ name: 'sign-compare', query: { ids: selectedIds.value.join(',') } });
 }
 
-onMounted(async () => {
-  try {
-    const cityQuery = route.query.city;
-    if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
-      store.filters.city = cityQuery;
-    }
-    await Promise.all([store.loadSigns(), store.loadFavorites(), store.loadTags()]);
-  } catch {
-    toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });
-  }
-});
+async function handleKeywordSearch() {
+  const trimmed = keywordInput.value.trim();
+  await store.setFilter('keyword', trimmed || undefined);
+}
+
+function handleKeywordClear() {
+  keywordInput.value = '';
+  store.setFilter('keyword', undefined);
+}
 
 /** 打开快速预览 Dialog */
 function openPreview(sign: BusSign) {
@@ -212,6 +226,24 @@ async function onPageChange(event: { page: number; rows: number; first: number }
       <div class="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex flex-wrap items-end gap-4">
           <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">样式描述关键词</label>
+            <div class="flex gap-2">
+              <InputText
+                v-model="keywordInput"
+                placeholder="输入关键词搜索"
+                class="w-56"
+                @keyup.enter="handleKeywordSearch"
+              />
+              <Button icon="pi pi-search" label="搜索" @click="handleKeywordSearch" />
+              <Button
+                v-if="store.filters.keyword"
+                icon="pi pi-times"
+                outlined
+                @click="handleKeywordClear"
+              />
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
             <label class="text-sm font-medium text-slate-600">城市</label>
             <Dropdown
               v-model="store.filters.city"
@@ -253,11 +285,11 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             <label class="text-sm font-medium text-slate-600">仅显示使用中</label>
           </div>
           <Button
-            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId"
+            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId || store.filters.keyword"
             label="重置筛选"
             icon="pi pi-refresh"
             outlined
-            @click="store.resetFilters()"
+            @click="store.resetFilters(); keywordInput = ''"
           />
         </div>
       </div>

@@ -18,6 +18,7 @@ export const useSignsStore = defineStore('signs', () => {
     era: undefined,
     inUse: false,
     tagId: undefined,
+    keyword: undefined,
   });
 
   const tags = ref<Tag[]>([]);
@@ -65,6 +66,7 @@ export const useSignsStore = defineStore('signs', () => {
     if (filters.tagId !== undefined && filters.tagId !== null) {
       apiFilters.tagId = filters.tagId;
     }
+    if (filters.keyword) apiFilters.keyword = filters.keyword;
     if (sortBy.value) apiFilters.sortBy = sortBy.value;
     if (sortOrder.value) apiFilters.sortOrder = sortOrder.value;
     return apiFilters;
@@ -133,6 +135,7 @@ export const useSignsStore = defineStore('signs', () => {
     filters.era = undefined;
     filters.inUse = false;
     filters.tagId = undefined;
+    filters.keyword = undefined;
     page.value = 1;
     await loadSigns();
   }

@@ -39,6 +39,7 @@ export interface SignFilters {
   era?: string;
   inUse?: boolean;
   tagId?: number;
+  keyword?: string;
   sortBy?: SortField;
   sortOrder?: SortOrder;
   page?: number;

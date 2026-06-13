@@ -24,6 +24,7 @@ function buildFilterParams(filters?: SignFilters): Record<string, string | boole
   if (filters?.tagId !== null && filters?.tagId !== undefined) {
     params.tagId = filters.tagId;
   }
+  if (filters?.keyword) params.keyword = filters.keyword;
   if (filters?.sortBy) params.sortBy = filters.sortBy;
   if (filters?.sortOrder) params.sortOrder = filters.sortOrder;
   return params;

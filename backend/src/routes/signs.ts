@@ -82,7 +82,7 @@ function validateTagIds(tagIds: number[] | undefined): string | null {
 
 /** GET /api/signs — 获取站牌列表（支持筛选、排序、分页） */
 router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize } = req.query;
+  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize, keyword } = req.query;
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -108,6 +108,10 @@ router.get('/', (req: Request, res: Response) => {
       conditions.push('st.tag_id = ?');
       params.push(tagIdNum);
     }
+  }
+  if (typeof keyword === 'string' && keyword.trim() !== '') {
+    conditions.push('s.style_description LIKE ?');
+    params.push(`%${keyword.trim()}%`);
   }
 
   const validSortFields = ['id', 'city', 'era'];
