@@ -22,6 +22,8 @@ const sign = ref<BusSign | null>(null);
 const loading = ref(true);
 const formVisible = ref(false);
 const signIds = ref<number[]>([]);
+const signIdsError = ref(false);
+const signIdsLoading = ref(false);
 
 const signId = computed(() => Number(props.id));
 
@@ -41,11 +43,20 @@ onMounted(async () => {
 
 /** 加载站牌编号列表 */
 async function loadSignIds() {
+  signIdsLoading.value = true;
+  signIdsError.value = false;
   try {
     signIds.value = await fetchSignIds();
   } catch {
-    // 静默失败，导航按钮会隐藏
+    signIdsError.value = true;
+  } finally {
+    signIdsLoading.value = false;
   }
+}
+
+/** 重试加载站牌编号列表 */
+async function retryLoadSignIds() {
+  await loadSignIds();
 }
 
 /** 加载站牌详情 */
@@ -156,7 +167,7 @@ async function handleToggleFavorite() {
       </div>
     </header>
 
-    <main class="mx-auto max-w-4xl px-4 py-8">
+    <main class="mx-auto max-w-4xl px-4 py-8 pb-28">
       <div v-if="loading" class="flex justify-center py-20">
         <ProgressSpinner />
       </div>
@@ -239,27 +250,45 @@ async function handleToggleFavorite() {
         </div>
 
         <div
-          v-if="signIds.length > 0"
-          class="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          class="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 shadow-lg backdrop-blur"
         >
-          <Button
-            label="上一条"
-            icon="pi pi-chevron-left"
-            :disabled="prevId === null"
-            class="flex-1"
-            @click="goPrev"
-          />
-          <div class="text-center text-sm text-slate-500">
-            <span v-if="currentIndex !== -1">{{ currentIndex + 1 }} / {{ signIds.length }}</span>
+          <div class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+            <Button
+              label="上一条"
+              icon="pi pi-chevron-left"
+              :disabled="prevId === null || signIdsError || signIdsLoading"
+              class="flex-1"
+              @click="goPrev"
+            />
+            <div class="min-w-0 flex-1 text-center text-sm">
+              <template v-if="signIdsError">
+                <span class="text-rose-500">加载失败</span>
+                <Button
+                  v-if="!signIdsLoading"
+                  label="重试"
+                  size="small"
+                  text
+                  class="ml-2 !p-0"
+                  @click="retryLoadSignIds"
+                />
+                <ProgressSpinner v-else stroke-width="8" class="!h-4 !w-4" />
+              </template>
+              <template v-else-if="signIdsLoading">
+                <ProgressSpinner stroke-width="8" class="!h-4 !w-4" />
+              </template>
+              <template v-else-if="signIds.length > 0 && currentIndex !== -1">
+                <span class="text-slate-500">{{ currentIndex + 1 }} / {{ signIds.length }}</span>
+              </template>
+            </div>
+            <Button
+              label="下一条"
+              icon="pi pi-chevron-right"
+              iconPos="right"
+              :disabled="nextId === null || signIdsError || signIdsLoading"
+              class="flex-1"
+              @click="goNext"
+            />
           </div>
-          <Button
-            label="下一条"
-            icon="pi pi-chevron-right"
-            iconPos="right"
-            :disabled="nextId === null"
-            class="flex-1"
-            @click="goNext"
-          />
         </div>
       </template>
     </main>
