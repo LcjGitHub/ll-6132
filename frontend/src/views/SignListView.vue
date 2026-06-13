@@ -14,7 +14,14 @@ import ProgressSpinner from 'primevue/progressspinner';
 import Dialog from 'primevue/dialog';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import { useSignsStore } from '@/stores/signs';
-import type { BusSign } from '@/types/sign';
+import type { BusSign, SortField, SortOrder } from '@/types/sign';
+
+interface SortOption {
+  label: string;
+  value: string;
+  sortBy: SortField;
+  sortOrder: SortOrder;
+}
 
 const store = useSignsStore();
 const router = useRouter();
@@ -27,6 +34,25 @@ const layoutOptions = [
   { label: '网格', value: 'grid', icon: 'pi pi-th-large' },
   { label: '列表', value: 'list', icon: 'pi pi-list' },
 ];
+
+const sortOptions: SortOption[] = [
+  { label: '按编号升序', value: 'id-asc', sortBy: 'id', sortOrder: 'asc' },
+  { label: '按编号降序', value: 'id-desc', sortBy: 'id', sortOrder: 'desc' },
+  { label: '按城市名称升序', value: 'city-asc', sortBy: 'city', sortOrder: 'asc' },
+  { label: '按城市名称降序', value: 'city-desc', sortBy: 'city', sortOrder: 'desc' },
+  { label: '按年代升序', value: 'era-asc', sortBy: 'era', sortOrder: 'asc' },
+  { label: '按年代降序', value: 'era-desc', sortBy: 'era', sortOrder: 'desc' },
+];
+
+const currentSortValue = computed({
+  get: () => `${store.sortBy}-${store.sortOrder}`,
+  set: async (val: string) => {
+    const option = sortOptions.find((o) => o.value === val);
+    if (option) {
+      await store.setSort(option.sortBy, option.sortOrder);
+    }
+  },
+});
 
 const previewSign = ref<BusSign | null>(null);
 const previewVisible = ref(false);
@@ -228,10 +254,20 @@ async function handleToggleFavorite(sign: BusSign) {
 
       <!-- 工具栏 -->
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <p class="text-slate-600">
             共 <span class="font-semibold text-brand-600">{{ store.signs.length }}</span> 条记录
           </p>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-slate-600">排序：</label>
+            <Dropdown
+              v-model="currentSortValue"
+              :options="sortOptions"
+              option-label="label"
+              option-value="value"
+              class="w-44"
+            />
+          </div>
           <div v-if="selectedCount > 0" class="flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
             <span>已选 {{ selectedCount }} / 2</span>
             <button

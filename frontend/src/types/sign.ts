@@ -27,12 +27,20 @@ export interface BusSignInput {
   tagIds?: number[];
 }
 
+/** 排序字段 */
+export type SortField = 'id' | 'city' | 'era';
+
+/** 排序方向 */
+export type SortOrder = 'asc' | 'desc';
+
 /** 站牌筛选条件 */
 export interface SignFilters {
   city?: string;
   era?: string;
   inUse?: boolean;
   tagId?: number;
+  sortBy?: SortField;
+  sortOrder?: SortOrder;
 }
 
 /** 城市站牌统计数据 */

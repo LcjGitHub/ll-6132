@@ -5,7 +5,7 @@ const api = axios.create({
   baseURL: '/api',
 });
 
-/** 获取站牌列表（支持按条件筛选） */
+/** 获取站牌列表（支持按条件筛选和排序） */
 export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
   const params: Record<string, string | boolean | number> = {};
   if (filters?.city) params.city = filters.city;
@@ -16,6 +16,8 @@ export async function fetchSigns(filters?: SignFilters): Promise<BusSign[]> {
   if (filters?.tagId !== null && filters?.tagId !== undefined) {
     params.tagId = filters.tagId;
   }
+  if (filters?.sortBy) params.sortBy = filters.sortBy;
+  if (filters?.sortOrder) params.sortOrder = filters.sortOrder;
   const { data } = await api.get<BusSign[]>('/signs', { params });
   return data;
 }

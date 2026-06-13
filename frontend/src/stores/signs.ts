@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, computed } from 'vue';
-import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign, Tag } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign, Tag, SortField, SortOrder } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
@@ -8,6 +8,8 @@ export const useSignsStore = defineStore('signs', () => {
   const allSigns = ref<BusSign[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const sortBy = ref<SortField>('id');
+  const sortOrder = ref<SortOrder>('asc');
   const filters = reactive<SignFilters>({
     city: undefined,
     era: undefined,
@@ -61,6 +63,8 @@ export const useSignsStore = defineStore('signs', () => {
       if (filters.tagId !== undefined && filters.tagId !== null) {
         apiFilters.tagId = filters.tagId;
       }
+      if (sortBy.value) apiFilters.sortBy = sortBy.value;
+      if (sortOrder.value) apiFilters.sortOrder = sortOrder.value;
       signs.value = await signsApi.fetchSigns(apiFilters);
       if (allSigns.value.length === 0) {
         allSigns.value = await signsApi.fetchSigns();
@@ -104,11 +108,19 @@ export const useSignsStore = defineStore('signs', () => {
     await loadSigns();
   }
 
+  async function setSort(field: SortField, order: SortOrder) {
+    sortBy.value = field;
+    sortOrder.value = order;
+    await loadSigns();
+  }
+
   async function resetFilters() {
     filters.city = undefined;
     filters.era = undefined;
     filters.inUse = false;
     filters.tagId = undefined;
+    sortBy.value = 'id';
+    sortOrder.value = 'asc';
     await loadSigns();
   }
 
@@ -140,6 +152,8 @@ export const useSignsStore = defineStore('signs', () => {
     allSigns,
     loading,
     error,
+    sortBy,
+    sortOrder,
     filters,
     tags,
     tagsLoading,
@@ -155,6 +169,7 @@ export const useSignsStore = defineStore('signs', () => {
     toggleFavorite,
     isFavorited,
     setFilter,
+    setSort,
     resetFilters,
     getById,
     addSign,

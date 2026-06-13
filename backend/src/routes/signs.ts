@@ -80,9 +80,9 @@ function validateTagIds(tagIds: number[] | undefined): string | null {
   return null;
 }
 
-/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态、标签筛选） */
+/** GET /api/signs — 获取全部站牌（支持按城市、年代、使用状态、标签筛选，支持按城市名称、年代排序） */
 router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId } = req.query;
+  const { city, era, inUse, tagId, sortBy, sortOrder } = req.query;
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];
@@ -110,8 +110,21 @@ router.get('/', (req: Request, res: Response) => {
     }
   }
 
+  const validSortFields = ['id', 'city', 'era'];
+  let sortField = 'id';
+  if (typeof sortBy === 'string' && validSortFields.includes(sortBy)) {
+    sortField = sortBy;
+  }
+
+  const validSortOrders = ['asc', 'desc'];
+  let order = 'asc';
+  if (typeof sortOrder === 'string' && validSortOrders.includes(sortOrder.toLowerCase())) {
+    order = sortOrder.toLowerCase();
+  }
+
+  const orderClause = `ORDER BY s.${sortField} ${order}`;
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const sql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ORDER BY s.id`;
+  const sql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause}`;
 
   const rows = db.prepare(sql).all(...params) as DbRow[];
   res.json(rows.map((r) => rowToSign(r, true)));
