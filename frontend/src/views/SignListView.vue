@@ -49,14 +49,22 @@ watch(keywordInput, (newVal, oldVal) => {
 onMounted(async () => {
   try {
     const cityQuery = route.query.city;
+    const eraQuery = route.query.era;
+
+    store.filters.city = undefined;
+    store.filters.era = undefined;
+    store.filters.inUse = false;
+    store.filters.tagId = undefined;
+    store.filters.keyword = undefined;
+    keywordInput.value = '';
+
     if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
       store.filters.city = cityQuery;
     }
-    const eraQuery = route.query.era;
     if (typeof eraQuery === 'string' && eraQuery.trim() !== '') {
       store.filters.era = eraQuery;
     }
-    keywordInput.value = store.filters.keyword || '';
+
     await Promise.all([store.loadSigns(), store.loadFavorites(), store.loadTags()]);
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '无法连接后端服务', life: 4000 });

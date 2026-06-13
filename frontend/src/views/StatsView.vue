@@ -10,10 +10,12 @@ import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ProgressBar from 'primevue/progressbar';
 import { fetchStats } from '@/api/signs';
+import { useSignsStore } from '@/stores/signs';
 import type { CityStats, EraStats } from '@/types/sign';
 
 const router = useRouter();
 const toast = useToast();
+const store = useSignsStore();
 
 const cityStats = ref<CityStats[]>([]);
 const eraStats = ref<EraStats[]>([]);
@@ -23,6 +25,10 @@ const totalSigns = computed(() => cityStats.value.reduce((sum, s) => sum + s.tot
 const totalInUse = computed(() => cityStats.value.reduce((sum, s) => sum + s.inUse, 0));
 const totalCities = computed(() => cityStats.value.length);
 const totalEras = computed(() => eraStats.value.length);
+const inUseRatio = computed(() => {
+  if (totalSigns.value === 0) return 0;
+  return Math.round((totalInUse.value / totalSigns.value) * 100);
+});
 
 function getPercentage(total: number, part: number): number {
   if (total === 0) return 0;
@@ -61,10 +67,20 @@ function goBack() {
 }
 
 function goToCity(city: string) {
+  store.filters.city = city;
+  store.filters.era = undefined;
+  store.filters.inUse = false;
+  store.filters.tagId = undefined;
+  store.filters.keyword = undefined;
   router.push({ name: 'home', query: { city } });
 }
 
 function goToEra(era: string) {
+  store.filters.city = undefined;
+  store.filters.era = era;
+  store.filters.inUse = false;
+  store.filters.tagId = undefined;
+  store.filters.keyword = undefined;
   router.push({ name: 'home', query: { era } });
 }
 </script>
@@ -90,7 +106,7 @@ function goToEra(era: string) {
       </div>
 
       <template v-else>
-        <section class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <section class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-5">
           <Card class="text-center">
             <template #content>
               <p class="text-sm text-slate-500">收录城市</p>
@@ -113,6 +129,12 @@ function goToEra(era: string) {
             <template #content>
               <p class="text-sm text-slate-500">使用中</p>
               <p class="mt-2 text-3xl font-bold text-green-600">{{ totalInUse }}</p>
+            </template>
+          </Card>
+          <Card class="text-center">
+            <template #content>
+              <p class="text-sm text-slate-500">使用率</p>
+              <p class="mt-2 text-3xl font-bold text-blue-600">{{ inUseRatio }}%</p>
             </template>
           </Card>
         </section>
@@ -224,7 +246,7 @@ function goToEra(era: string) {
           </div>
         </section>
 
-        <section>
+        <section class="mb-8">
           <h2 class="mb-4 text-lg font-semibold text-slate-800">城市统计详情</h2>
           <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <DataTable :value="cityStats" stripedRows>
@@ -263,6 +285,53 @@ function goToEra(era: string) {
                     :value="`${getPercentage(slotProps.data.total, slotProps.data.inUse)}%`"
                     :severity="getPercentage(slotProps.data.total, slotProps.data.inUse) > 50 ? 'success' : 'warning'"
                   />
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">年代统计详情</h2>
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <DataTable :value="eraStats" stripedRows>
+              <Column field="era" header="年代" style="width: 20%">
+                <template #body="slotProps">
+                  <span
+                    class="cursor-pointer font-medium text-brand-600 hover:text-brand-800 hover:underline"
+                    @click="goToEra(slotProps.data.era)"
+                  >
+                    {{ slotProps.data.era }}
+                  </span>
+                </template>
+              </Column>
+              <Column field="total" header="总数" style="width: 20%">
+                <template #body="slotProps">
+                  <span class="font-semibold">{{ slotProps.data.total }}</span>
+                </template>
+              </Column>
+              <Column header="使用中" style="width: 20%">
+                <template #body="slotProps">
+                  <span class="text-green-600 font-medium">{{ slotProps.data.inUse }}</span>
+                </template>
+              </Column>
+              <Column header="已停用" style="width: 20%">
+                <template #body="slotProps">
+                  <span class="text-slate-500 font-medium">{{ slotProps.data.total - slotProps.data.inUse }}</span>
+                </template>
+              </Column>
+              <Column header="占比" style="width: 20%">
+                <template #body="slotProps">
+                  <div class="flex items-center gap-2">
+                    <ProgressBar
+                      :value="getEraPercentage(slotProps.data.total)"
+                      :showValue="false"
+                      class="flex-1"
+                    />
+                    <span class="text-sm text-slate-600 w-12 text-right">
+                      {{ getEraPercentage(slotProps.data.total) }}%
+                    </span>
+                  </div>
                 </template>
               </Column>
             </DataTable>
