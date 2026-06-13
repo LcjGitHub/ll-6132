@@ -16,3 +16,10 @@ export interface BusSignInput {
   inUse: boolean;
   imageUrl: string;
 }
+
+/** 城市站牌统计数据 */
+export interface CityStats {
+  city: string;
+  total: number;
+  inUse: number;
+}

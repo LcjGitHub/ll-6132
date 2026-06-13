@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { BusSign, BusSignInput, SignFilters } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, CityStats } from '@/types/sign';
 
 const api = axios.create({
   baseURL: '/api',
@@ -38,4 +38,10 @@ export async function updateSign(id: number, input: BusSignInput): Promise<BusSi
 /** 删除站牌 */
 export async function deleteSign(id: number): Promise<void> {
   await api.delete(`/signs/${id}`);
+}
+
+/** 获取按城市汇总的统计数据 */
+export async function fetchCityStats(): Promise<CityStats[]> {
+  const { data } = await api.get<CityStats[]>('/stats/cities');
+  return data;
 }

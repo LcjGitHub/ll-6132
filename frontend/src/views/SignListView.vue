@@ -94,12 +94,21 @@ function onFormSaved() {
     <!-- 页头 -->
     <header class="bg-brand-600 text-white shadow-md">
       <div class="mx-auto max-w-6xl px-4 py-6">
-        <div class="flex items-center gap-3">
-          <i class="pi pi-map-marker text-3xl" />
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight">地方公交站牌设计图鉴</h1>
-            <p class="mt-1 text-sm text-blue-100">收录各地公交站牌样式，记录城市公共交通的视觉记忆</p>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i class="pi pi-map-marker text-3xl" />
+            <div>
+              <h1 class="text-2xl font-bold tracking-tight">地方公交站牌设计图鉴</h1>
+              <p class="mt-1 text-sm text-blue-100">收录各地公交站牌样式，记录城市公共交通的视觉记忆</p>
+            </div>
           </div>
+          <Button
+            icon="pi pi-chart-bar"
+            label="数据统计"
+            outlined
+            class="!border-white/30 !text-white hover:!bg-white/10"
+            @click="router.push({ name: 'stats' })"
+          />
         </div>
       </div>
     </header>

@@ -23,3 +23,10 @@ export interface SignFilters {
   era?: string;
   inUse?: boolean;
 }
+
+/** 城市站牌统计数据 */
+export interface CityStats {
+  city: string;
+  total: number;
+  inUse: number;
+}
