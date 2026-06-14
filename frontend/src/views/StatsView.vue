@@ -11,7 +11,7 @@ import ProgressBar from 'primevue/progressbar';
 import AppHeader from '@/components/AppHeader.vue';
 import { fetchStats } from '@/api/signs';
 import { useSignsStore } from '@/stores/signs';
-import type { CityStats, EraStats } from '@/types/sign';
+import type { CityStats, EraStats, TagStats } from '@/types/sign';
 
 const router = useRouter();
 const toast = useToast();
@@ -19,12 +19,14 @@ const store = useSignsStore();
 
 const cityStats = ref<CityStats[]>([]);
 const eraStats = ref<EraStats[]>([]);
+const tagStats = ref<TagStats[]>([]);
 const loading = ref(true);
 
 const totalSigns = computed(() => cityStats.value.reduce((sum, s) => sum + s.total, 0));
 const totalInUse = computed(() => cityStats.value.reduce((sum, s) => sum + s.inUse, 0));
 const totalCities = computed(() => cityStats.value.length);
 const totalEras = computed(() => eraStats.value.length);
+const totalTags = computed(() => tagStats.value.filter((t) => t.total > 0).length);
 const inUseRatio = computed(() => {
   if (totalSigns.value === 0) return 0;
   return Math.round((totalInUse.value / totalSigns.value) * 100);
@@ -45,9 +47,19 @@ function getEraPercentage(total: number): number {
   return Math.round((total / totalSigns.value) * 100);
 }
 
+function getTagPercentage(total: number): number {
+  if (totalSigns.value === 0) return 0;
+  return Math.round((total / totalSigns.value) * 100);
+}
+
 const maxEraTotal = computed(() => {
   if (eraStats.value.length === 0) return 0;
   return Math.max(...eraStats.value.map((e) => e.total));
+});
+
+const maxTagTotal = computed(() => {
+  if (tagStats.value.length === 0) return 0;
+  return Math.max(...tagStats.value.map((t) => t.total));
 });
 
 onMounted(async () => {
@@ -55,6 +67,7 @@ onMounted(async () => {
     const data = await fetchStats();
     cityStats.value = data.cities;
     eraStats.value = data.eras;
+    tagStats.value = data.tags;
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '加载统计数据失败', life: 3000 });
   } finally {
@@ -79,6 +92,15 @@ function goToEra(era: string) {
   store.filters.keyword = undefined;
   router.push({ name: 'home', query: { era } });
 }
+
+function goToTag(tagId: number) {
+  store.filters.city = undefined;
+  store.filters.era = undefined;
+  store.filters.inUse = false;
+  store.filters.tagId = tagId;
+  store.filters.keyword = undefined;
+  router.push({ name: 'home', query: { tagId: String(tagId) } });
+}
 </script>
 
 <template>
@@ -91,7 +113,7 @@ function goToEra(era: string) {
       </div>
 
       <template v-else>
-        <section class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-5">
+        <section class="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card class="text-center">
             <template #content>
               <p class="text-sm text-slate-500">收录城市</p>
@@ -102,6 +124,12 @@ function goToEra(era: string) {
             <template #content>
               <p class="text-sm text-slate-500">年代跨度</p>
               <p class="mt-2 text-3xl font-bold text-purple-600">{{ totalEras }}</p>
+            </template>
+          </Card>
+          <Card class="text-center">
+            <template #content>
+              <p class="text-sm text-slate-500">标签数量</p>
+              <p class="mt-2 text-3xl font-bold text-orange-600">{{ totalTags }}</p>
             </template>
           </Card>
           <Card class="text-center">
@@ -232,6 +260,78 @@ function goToEra(era: string) {
         </section>
 
         <section class="mb-8">
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">各标签站牌分布</h2>
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="space-y-4">
+              <div
+                v-for="item in tagStats"
+                :key="item.tagId"
+                class="group cursor-pointer rounded-lg p-3 transition hover:bg-slate-50"
+                @click="goToTag(item.tagId)"
+              >
+                <div class="mb-2 flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <Tag
+                      :value="item.tagName"
+                      :severity="item.tagColor || 'info'"
+                    />
+                    <Tag :value="`${item.total} 个`" severity="info" />
+                    <Tag
+                      v-if="item.inUse > 0"
+                      :value="`使用中 ${item.inUse} 个`"
+                      severity="success"
+                    />
+                    <Tag
+                      v-if="item.total - item.inUse > 0"
+                      :value="`已停用 ${item.total - item.inUse} 个`"
+                      severity="secondary"
+                    />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-slate-500">{{ getTagPercentage(item.total) }}%</span>
+                    <i class="pi pi-external-link text-slate-400 transition group-hover:text-brand-600" />
+                  </div>
+                </div>
+                <div class="flex h-6 overflow-hidden rounded-md bg-slate-100">
+                  <div
+                    class="flex items-center justify-end bg-green-500 transition-all"
+                    :style="{ width: maxTagTotal > 0 ? `${(item.inUse / maxTagTotal) * 100}%` : '0%' }"
+                  >
+                    <span
+                      v-if="item.inUse > 0"
+                      class="px-2 text-xs font-medium text-white"
+                    >
+                      {{ item.inUse }}
+                    </span>
+                  </div>
+                  <div
+                    class="flex items-center justify-end bg-slate-400 transition-all"
+                    :style="{ width: maxTagTotal > 0 ? `${((item.total - item.inUse) / maxTagTotal) * 100}%` : '0%' }"
+                  >
+                    <span
+                      v-if="item.total - item.inUse > 0"
+                      class="px-2 text-xs font-medium text-white"
+                    >
+                      {{ item.total - item.inUse }}
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-2 flex justify-between text-xs text-slate-500">
+                  <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+                    使用中
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-slate-400"></span>
+                    已停用
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mb-8">
           <h2 class="mb-4 text-lg font-semibold text-slate-800">城市统计详情</h2>
           <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <DataTable :value="cityStats" stripedRows>
@@ -315,6 +415,56 @@ function goToEra(era: string) {
                     />
                     <span class="text-sm text-slate-600 w-12 text-right">
                       {{ getEraPercentage(slotProps.data.total) }}%
+                    </span>
+                  </div>
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </section>
+
+        <section class="mb-8">
+          <h2 class="mb-4 text-lg font-semibold text-slate-800">标签统计详情</h2>
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <DataTable :value="tagStats" stripedRows>
+              <Column header="标签" style="width: 25%">
+                <template #body="slotProps">
+                  <span
+                    class="cursor-pointer font-medium text-brand-600 hover:text-brand-800 hover:underline"
+                    @click="goToTag(slotProps.data.tagId)"
+                  >
+                    <Tag
+                      :value="slotProps.data.tagName"
+                      :severity="slotProps.data.tagColor || 'info'"
+                    />
+                  </span>
+                </template>
+              </Column>
+              <Column header="总数" style="width: 15%">
+                <template #body="slotProps">
+                  <span class="font-semibold">{{ slotProps.data.total }}</span>
+                </template>
+              </Column>
+              <Column header="使用中" style="width: 15%">
+                <template #body="slotProps">
+                  <span class="text-green-600 font-medium">{{ slotProps.data.inUse }}</span>
+                </template>
+              </Column>
+              <Column header="已停用" style="width: 15%">
+                <template #body="slotProps">
+                  <span class="text-slate-500 font-medium">{{ slotProps.data.total - slotProps.data.inUse }}</span>
+                </template>
+              </Column>
+              <Column header="占比" style="width: 30%">
+                <template #body="slotProps">
+                  <div class="flex items-center gap-2">
+                    <ProgressBar
+                      :value="getTagPercentage(slotProps.data.total)"
+                      :showValue="false"
+                      class="flex-1"
+                    />
+                    <span class="text-sm text-slate-600 w-12 text-right">
+                      {{ getTagPercentage(slotProps.data.total) }}%
                     </span>
                   </div>
                 </template>

@@ -5,6 +5,7 @@ import type {
   SignFilters,
   CityStats,
   EraStats,
+  TagStats,
   StatsResponse,
   FavoriteWithSign,
   FavoriteCheckResult,
@@ -145,6 +146,18 @@ export async function deleteSign(id: number): Promise<void> {
 /** 获取按城市汇总的统计数据 */
 export async function fetchCityStats(): Promise<CityStats[]> {
   const { data } = await api.get<CityStats[]>('/stats/cities');
+  return data;
+}
+
+/** 获取按年代汇总的统计数据 */
+export async function fetchEraStats(): Promise<EraStats[]> {
+  const { data } = await api.get<EraStats[]>('/stats/eras');
+  return data;
+}
+
+/** 获取按标签汇总的统计数据 */
+export async function fetchTagStats(): Promise<TagStats[]> {
+  const { data } = await api.get<TagStats[]>('/stats/tags');
   return data;
 }
 

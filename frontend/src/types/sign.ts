@@ -71,10 +71,20 @@ export interface EraStats {
   inUse: number;
 }
 
+/** 标签站牌统计数据 */
+export interface TagStats {
+  tagId: number;
+  tagName: string;
+  tagColor: string;
+  total: number;
+  inUse: number;
+}
+
 /** 综合统计响应 */
 export interface StatsResponse {
   cities: CityStats[];
   eras: EraStats[];
+  tags: TagStats[];
 }
 
 /** 收藏记录（含站牌详情） */
