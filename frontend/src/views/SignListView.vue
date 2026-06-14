@@ -229,7 +229,17 @@ async function onPageChange(event: { page: number; rows: number; first: number }
       title="地方公交站牌设计图鉴"
       subtitle="收录各地公交站牌样式，记录城市公共交通的视觉记忆"
       icon="pi pi-map-marker"
-    />
+    >
+      <template #right>
+        <Button
+          icon="pi pi-tags"
+          label="标签管理"
+          outlined
+          class="!border-white/30 !text-white hover:!bg-white/10"
+          @click="router.push({ name: 'tag-manage' })"
+        />
+      </template>
+    </AppHeader>
 
     <main class="mx-auto max-w-6xl px-4 py-8">
       <!-- 筛选栏 -->

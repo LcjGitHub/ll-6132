@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import('@/views/StatsView.vue'),
     },
     {
+      path: '/tags',
+      name: 'tag-manage',
+      component: () => import('@/views/TagManageView.vue'),
+    },
+    {
       path: '/signs/compare',
       name: 'sign-compare',
       component: () => import('@/views/SignCompareView.vue'),

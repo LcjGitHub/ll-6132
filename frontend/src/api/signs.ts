@@ -4,14 +4,10 @@ import type {
   BusSignInput,
   SignFilters,
   CityStats,
-  EraStats,
-  StatsResponse,
   FavoriteWithSign,
   FavoriteCheckResult,
   Tag,
   PaginatedResponse,
-  HistoryWithSign,
-  SignNote,
 } from '@/types/sign';
 
 const api = axios.create({
@@ -66,6 +62,17 @@ export async function createTag(input: { name: string; color?: string }): Promis
   return data;
 }
 
+/** 更新标签 */
+export async function updateTag(id: number, input: { name: string; color?: string }): Promise<Tag> {
+  const { data } = await api.put<Tag>(`/tags/${id}`, input);
+  return data;
+}
+
+/** 删除标签 */
+export async function deleteTag(id: number): Promise<void> {
+  await api.delete(`/tags/${id}`);
+}
+
 /** 获取单条站牌 */
 export async function fetchSign(id: number): Promise<BusSign> {
   const { data } = await api.get<BusSign>(`/signs/${id}`);
@@ -86,12 +93,6 @@ export async function fetchSignIds(): Promise<number[]> {
   return data;
 }
 
-/** 获取随机站牌 */
-export async function fetchRandomSign(): Promise<BusSign> {
-  const { data } = await api.get<BusSign>('/signs/random');
-  return data;
-}
-
 /** 新建站牌 */
 export async function createSign(input: BusSignInput): Promise<BusSign> {
   const { data } = await api.post<BusSign>('/signs', input);
@@ -109,21 +110,9 @@ export async function deleteSign(id: number): Promise<void> {
   await api.delete(`/signs/${id}`);
 }
 
-/** 获取综合统计数据（城市+年代分布） */
-export async function fetchStats(): Promise<StatsResponse> {
-  const { data } = await api.get<StatsResponse>('/stats');
-  return data;
-}
-
 /** 获取按城市汇总的统计数据 */
 export async function fetchCityStats(): Promise<CityStats[]> {
   const { data } = await api.get<CityStats[]>('/stats/cities');
-  return data;
-}
-
-/** 获取按年代汇总的统计数据 */
-export async function fetchEraStats(): Promise<EraStats[]> {
-  const { data } = await api.get<EraStats[]>('/stats/eras');
   return data;
 }
 
@@ -148,38 +137,4 @@ export async function removeFavorite(signId: number): Promise<void> {
 export async function checkFavorite(signId: number): Promise<FavoriteCheckResult> {
   const { data } = await api.get<FavoriteCheckResult>(`/favorites/check/${signId}`);
   return data;
-}
-
-/** 获取浏览历史列表（含站牌详情） */
-export async function fetchHistory(): Promise<HistoryWithSign[]> {
-  const { data } = await api.get<HistoryWithSign[]>('/history');
-  return data;
-}
-
-/** 记录浏览历史 */
-export async function addHistory(signId: number): Promise<HistoryWithSign> {
-  const { data } = await api.post<HistoryWithSign>('/history', { signId });
-  return data;
-}
-
-/** 清空全部浏览历史 */
-export async function clearHistory(): Promise<void> {
-  await api.delete('/history');
-}
-
-/** 获取某站牌的备注 */
-export async function fetchNote(signId: number): Promise<SignNote> {
-  const { data } = await api.get<SignNote>(`/notes/${signId}`);
-  return data;
-}
-
-/** 保存某站牌的备注（创建或更新） */
-export async function saveNote(signId: number, content: string): Promise<SignNote> {
-  const { data } = await api.put<SignNote>(`/notes/${signId}`, { content });
-  return data;
-}
-
-/** 删除某站牌的备注 */
-export async function deleteNote(signId: number): Promise<void> {
-  await api.delete(`/notes/${signId}`);
 }
