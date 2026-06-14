@@ -15,6 +15,7 @@ export interface TagInput {
 /** 公交站牌记录 */
 export interface BusSign {
   id: number;
+  province: string;
   city: string;
   styleDescription: string;
   era: string;
@@ -25,6 +26,7 @@ export interface BusSign {
 
 /** 创建/更新站牌请求体 */
 export interface BusSignInput {
+  province: string;
   city: string;
   styleDescription: string;
   era: string;

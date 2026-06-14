@@ -6,6 +6,7 @@ const router = Router();
 
 interface DbRow {
   id: number;
+  province: string;
   city: string;
   style_description: string;
   era: string;
@@ -45,6 +46,7 @@ function getTagsBySignId(signId: number): Tag[] {
 function rowToSign(row: DbRow, includeTags = true): BusSign {
   const sign: BusSign = {
     id: row.id,
+    province: row.province,
     city: row.city,
     styleDescription: row.style_description,
     era: row.era,
@@ -87,6 +89,10 @@ function buildFilterWhereClause(
   const params: (string | number)[] = [];
   let joinClause = '';
 
+  if (query.province && query.province.trim() !== '') {
+    conditions.push('s.province = ?');
+    params.push(query.province);
+  }
   if (query.city && query.city.trim() !== '') {
     conditions.push('s.city = ?');
     params.push(query.city);
@@ -118,7 +124,7 @@ function buildFilterWhereClause(
 }
 
 function buildOrderClause(sortBy?: string, sortOrder?: string): string {
-  const validSortFields = ['id', 'city', 'era'];
+  const validSortFields = ['id', 'province', 'city', 'era'];
   let sortField = 'id';
   if (sortBy && validSortFields.includes(sortBy)) {
     sortField = sortBy;
@@ -133,9 +139,10 @@ function buildOrderClause(sortBy?: string, sortOrder?: string): string {
 
 /** GET /api/signs — 获取站牌列表（支持筛选、排序、分页） */
 router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize, keyword } = req.query;
+  const { province, city, era, inUse, tagId, sortBy, sortOrder, page, pageSize, keyword } = req.query;
 
   const { joinClause, whereClause, params } = buildFilterWhereClause({
+    province: typeof province === 'string' ? province : undefined,
     city: typeof city === 'string' ? city : undefined,
     era: typeof era === 'string' ? era : undefined,
     inUse: inUse !== undefined ? String(inUse) : undefined,
@@ -178,9 +185,10 @@ router.get('/', (req: Request, res: Response) => {
 
 /** GET /api/signs/export — 导出站牌数据为 CSV 文件 */
 router.get('/export', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId, sortBy, sortOrder, keyword } = req.query;
+  const { province, city, era, inUse, tagId, sortBy, sortOrder, keyword } = req.query;
 
   const { joinClause, whereClause, params } = buildFilterWhereClause({
+    province: typeof province === 'string' ? province : undefined,
     city: typeof city === 'string' ? city : undefined,
     era: typeof era === 'string' ? era : undefined,
     inUse: inUse !== undefined ? String(inUse) : undefined,
@@ -195,12 +203,13 @@ router.get('/export', (req: Request, res: Response) => {
   const dataSql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause}`;
   const rows = db.prepare(dataSql).all(...params) as DbRow[];
 
-  const csvHeader = '编号,城市,样式描述,年代,是否使用中,图片地址,标签名称';
+  const csvHeader = '编号,省份,城市,样式描述,年代,是否使用中,图片地址,标签名称';
   const csvRows = rows.map((row) => {
     const sign = rowToSign(row, true);
     const tagNames = (sign.tags || []).map((t) => t.name).join('|');
     return [
       sign.id,
+      csvEscape(sign.province),
       csvEscape(sign.city),
       csvEscape(sign.styleDescription),
       csvEscape(sign.era),
@@ -276,7 +285,7 @@ router.get('/:id', (req: Request, res: Response) => {
 /** POST /api/signs — 新建站牌 */
 router.post('/', (req: Request, res: Response) => {
   const body = req.body as BusSignInput;
-  if (!body.city || !body.styleDescription || !body.era || !body.imageUrl) {
+  if (!body.province || !body.city || !body.styleDescription || !body.era || !body.imageUrl) {
     res.status(400).json({ error: '缺少必填字段' });
     return;
   }
@@ -288,10 +297,10 @@ router.post('/', (req: Request, res: Response) => {
 
   const result = db
     .prepare(
-      `INSERT INTO signs (city, style_description, era, in_use, image_url)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO signs (province, city, style_description, era, in_use, image_url)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .run(body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl);
+    .run(body.province, body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl);
 
   const signId = result.lastInsertRowid as number;
   setSignTags(signId, body.tagIds);
@@ -309,6 +318,10 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   const body = req.body as BusSignInput;
+  if (!body.province || !body.city || !body.styleDescription || !body.era || !body.imageUrl) {
+    res.status(400).json({ error: '缺少必填字段' });
+    return;
+  }
   const tagError = validateTagIds(body.tagIds);
   if (tagError) {
     res.status(400).json({ error: tagError });
@@ -316,9 +329,9 @@ router.put('/:id', (req: Request, res: Response) => {
   }
 
   db.prepare(
-    `UPDATE signs SET city = ?, style_description = ?, era = ?, in_use = ?, image_url = ?
+    `UPDATE signs SET province = ?, city = ?, style_description = ?, era = ?, in_use = ?, image_url = ?
      WHERE id = ?`
-  ).run(body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl, req.params.id);
+  ).run(body.province, body.city, body.styleDescription, body.era, body.inUse ? 1 : 0, body.imageUrl, req.params.id);
 
   setSignTags(Number(req.params.id), body.tagIds);
 

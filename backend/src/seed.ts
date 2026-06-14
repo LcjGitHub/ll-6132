@@ -3,6 +3,7 @@ import db from './db';
 
 export const SEED_DATA = [
   {
+    province: '北京市',
     city: '北京',
     styleDescription: '蓝白配色立柱式站牌，顶部公交图标，线路信息横向排列，采用 LED 背光',
     era: '2010年代',
@@ -11,6 +12,7 @@ export const SEED_DATA = [
     tagNames: ['立柱式', '电子屏'],
   },
   {
+    province: '上海市',
     city: '上海',
     styleDescription: '绿色圆角矩形站牌，双语（中英）标识，线路编号大号字体突出',
     era: '2000年代',
@@ -19,6 +21,7 @@ export const SEED_DATA = [
     tagNames: ['立柱式'],
   },
   {
+    province: '四川省',
     city: '成都',
     styleDescription: '熊猫元素装饰的仿古木质站牌，融合巴蜀文化，线路信息竖排展示',
     era: '1990年代',
@@ -27,6 +30,7 @@ export const SEED_DATA = [
     tagNames: ['仿古风', '立柱式'],
   },
   {
+    province: '广东省',
     city: '广州',
     styleDescription: '不锈钢框架玻璃面板，电子墨水屏显示到站信息，夜间自发光',
     era: '2020年代',
@@ -35,6 +39,7 @@ export const SEED_DATA = [
     tagNames: ['电子屏', '立柱式'],
   },
   {
+    province: '陕西省',
     city: '西安',
     styleDescription: '仿唐风飞檐顶盖站牌，朱红立柱，线路牌嵌入仿古灯笼造型灯箱',
     era: '1980年代',
@@ -70,8 +75,8 @@ export function seedDatabase(database: DbInstance, force = false): { signs: numb
   if (force || count.count === 0) {
     if (force) database.exec('DELETE FROM sign_tags; DELETE FROM signs; DELETE FROM favorites;');
     const insertSign = database.prepare(`
-      INSERT INTO signs (city, style_description, era, in_use, image_url)
-      VALUES (@city, @styleDescription, @era, @inUse, @imageUrl)
+      INSERT INTO signs (province, city, style_description, era, in_use, image_url)
+      VALUES (@province, @city, @styleDescription, @era, @inUse, @imageUrl)
     `);
     const insertSignTag = database.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
     const getTagId = database.prepare('SELECT id FROM tags WHERE name = ?');

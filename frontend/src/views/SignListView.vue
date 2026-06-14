@@ -50,9 +50,11 @@ watch(keywordInput, (newVal, oldVal) => {
 
 onMounted(async () => {
   try {
+    const provinceQuery = route.query.province;
     const cityQuery = route.query.city;
     const eraQuery = route.query.era;
 
+    store.filters.province = undefined;
     store.filters.city = undefined;
     store.filters.era = undefined;
     store.filters.inUse = false;
@@ -60,6 +62,9 @@ onMounted(async () => {
     store.filters.keyword = undefined;
     keywordInput.value = '';
 
+    if (typeof provinceQuery === 'string' && provinceQuery.trim() !== '') {
+      store.filters.province = provinceQuery;
+    }
     if (typeof cityQuery === 'string' && cityQuery.trim() !== '') {
       store.filters.city = cityQuery;
     }
@@ -76,6 +81,8 @@ onMounted(async () => {
 const sortOptions: SortOption[] = [
   { label: '按编号升序', value: 'id-asc', sortBy: 'id', sortOrder: 'asc' },
   { label: '按编号降序', value: 'id-desc', sortBy: 'id', sortOrder: 'desc' },
+  { label: '按省份升序', value: 'province-asc', sortBy: 'province', sortOrder: 'asc' },
+  { label: '按省份降序', value: 'province-desc', sortBy: 'province', sortOrder: 'desc' },
   { label: '按城市名称升序', value: 'city-asc', sortBy: 'city', sortOrder: 'asc' },
   { label: '按城市名称降序', value: 'city-desc', sortBy: 'city', sortOrder: 'desc' },
   { label: '按年代升序', value: 'era-asc', sortBy: 'era', sortOrder: 'asc' },
@@ -178,7 +185,7 @@ function openEdit(sign: BusSign) {
 /** 删除站牌 */
 function confirmDelete(sign: BusSign) {
   confirm.require({
-    message: `确定删除「${sign.city}」站牌记录吗？`,
+    message: `确定删除「${sign.province} ${sign.city}」站牌记录吗？`,
     header: '确认删除',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: '删除',
@@ -284,6 +291,19 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             </div>
           </div>
           <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-600">省份</label>
+            <Dropdown
+              v-model="store.filters.province"
+              :options="store.provinceOptions"
+              placeholder="全部省份"
+              show-clear
+              filter
+              filter-placeholder="搜索省份"
+              class="w-40"
+              @change="store.setFilter('province', store.filters.province)"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
             <label class="text-sm font-medium text-slate-600">城市</label>
             <Dropdown
               v-model="store.filters.city"
@@ -325,7 +345,7 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             <label class="text-sm font-medium text-slate-600">仅显示使用中</label>
           </div>
           <Button
-            v-if="store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId || store.filters.keyword || keywordClearPending"
+            v-if="store.filters.province || store.filters.city || store.filters.era || store.filters.inUse || store.filters.tagId || store.filters.keyword || keywordClearPending"
             label="重置筛选"
             icon="pi pi-refresh"
             outlined
@@ -443,7 +463,10 @@ async function onPageChange(event: { page: number; rows: number; first: number }
               </div>
               <div class="p-4">
                 <div class="mb-1 flex items-center justify-between">
-                  <h3 class="text-lg font-semibold text-slate-800">{{ sign.city }}</h3>
+                  <div>
+                    <h3 class="text-lg font-semibold text-slate-800">{{ sign.city }}</h3>
+                    <p class="text-xs text-slate-400">{{ sign.province }}</p>
+                  </div>
                   <span class="text-sm text-slate-400">{{ sign.era }}</span>
                 </div>
                 <div v-if="sign.tags && sign.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
@@ -508,6 +531,7 @@ async function onPageChange(event: { page: number; rows: number; first: number }
                 <div>
                   <div class="mb-1 flex flex-wrap items-center gap-2">
                     <h3 class="text-lg font-semibold">{{ sign.city }}</h3>
+                    <span class="text-xs text-slate-400">{{ sign.province }}</span>
                     <Tag :value="sign.era" severity="info" />
                     <Tag
                       v-if="sign.tags && sign.tags.length > 0"
@@ -591,17 +615,21 @@ async function onPageChange(event: { page: number; rows: number; first: number }
     <!-- 快速预览 Dialog -->
     <Dialog
       v-model:visible="previewVisible"
-      :header="previewSign ? `${previewSign.city} · 站牌预览` : '站牌预览'"
+      :header="previewSign ? `${previewSign.province} ${previewSign.city} · 站牌预览` : '站牌预览'"
       modal
       class="w-full max-w-lg"
     >
       <template v-if="previewSign">
         <img
           :src="previewSign.imageUrl"
-          :alt="`${previewSign.city}站牌`"
+          :alt="`${previewSign.province} ${previewSign.city}站牌`"
           class="mb-4 w-full rounded-lg object-cover"
         />
         <dl class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-slate-400">省份</dt>
+            <dd class="font-medium">{{ previewSign.province }}</dd>
+          </div>
           <div class="flex justify-between">
             <dt class="text-slate-400">城市</dt>
             <dd class="font-medium">{{ previewSign.city }}</dd>

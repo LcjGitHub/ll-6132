@@ -9,6 +9,7 @@ export interface Tag {
 /** 公交站牌记录 */
 export interface BusSign {
   id: number;
+  province: string;
   city: string;
   styleDescription: string;
   era: string;
@@ -19,6 +20,7 @@ export interface BusSign {
 
 /** 创建/更新站牌请求体 */
 export interface BusSignInput {
+  province: string;
   city: string;
   styleDescription: string;
   era: string;
@@ -28,13 +30,14 @@ export interface BusSignInput {
 }
 
 /** 排序字段 */
-export type SortField = 'id' | 'city' | 'era';
+export type SortField = 'id' | 'province' | 'city' | 'era';
 
 /** 排序方向 */
 export type SortOrder = 'asc' | 'desc';
 
 /** 站牌筛选条件 */
 export interface SignFilters {
+  province?: string;
   city?: string;
   era?: string;
   inUse?: boolean;

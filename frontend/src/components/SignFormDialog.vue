@@ -23,6 +23,7 @@ const store = useSignsStore();
 const saving = ref(false);
 
 const form = ref<BusSignInput & { tagIds: number[] }>({
+  province: '',
   city: '',
   styleDescription: '',
   era: '',
@@ -50,6 +51,7 @@ watch(
       if (props.sign) {
         isEdit.value = true;
         form.value = {
+          province: props.sign.province,
           city: props.sign.city,
           styleDescription: props.sign.styleDescription,
           era: props.sign.era,
@@ -60,6 +62,7 @@ watch(
       } else {
         isEdit.value = false;
         form.value = {
+          province: '',
           city: '',
           styleDescription: '',
           era: '',
@@ -74,7 +77,7 @@ watch(
 
 /** 提交表单 */
 async function handleSubmit() {
-  if (!form.value.city || !form.value.styleDescription || !form.value.era || !form.value.imageUrl) {
+  if (!form.value.province || !form.value.city || !form.value.styleDescription || !form.value.era || !form.value.imageUrl) {
     return;
   }
   if (form.value.tagIds.length > maxTags) {
@@ -84,6 +87,7 @@ async function handleSubmit() {
   saving.value = true;
   try {
     const submitData: BusSignInput = {
+      province: form.value.province,
       city: form.value.city,
       styleDescription: form.value.styleDescription,
       era: form.value.era,
@@ -114,6 +118,10 @@ async function handleSubmit() {
     @update:visible="emit('update:visible', $event)"
   >
     <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-600">省份</label>
+        <InputText v-model="form.province" class="w-full" placeholder="如：北京市、广东省" required />
+      </div>
       <div>
         <label class="mb-1 block text-sm font-medium text-slate-600">城市</label>
         <InputText v-model="form.city" class="w-full" placeholder="如：北京" required />

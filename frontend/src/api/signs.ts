@@ -4,8 +4,12 @@ import type {
   BusSignInput,
   SignFilters,
   CityStats,
+  EraStats,
+  StatsResponse,
   FavoriteWithSign,
   FavoriteCheckResult,
+  HistoryWithSign,
+  SignNote,
   Tag,
   PaginatedResponse,
 } from '@/types/sign';
@@ -16,6 +20,7 @@ const api = axios.create({
 
 function buildFilterParams(filters?: SignFilters): Record<string, string | boolean | number> {
   const params: Record<string, string | boolean | number> = {};
+  if (filters?.province) params.province = filters.province;
   if (filters?.city) params.city = filters.city;
   if (filters?.era) params.era = filters.era;
   if (filters?.inUse !== null && filters?.inUse !== undefined) {
@@ -163,5 +168,53 @@ export async function removeFavorite(signId: number): Promise<void> {
 /** 检查某个站牌是否已收藏 */
 export async function checkFavorite(signId: number): Promise<FavoriteCheckResult> {
   const { data } = await api.get<FavoriteCheckResult>(`/favorites/check/${signId}`);
+  return data;
+}
+
+/** 获取浏览历史列表（含站牌详情） */
+export async function fetchHistory(): Promise<HistoryWithSign[]> {
+  const { data } = await api.get<HistoryWithSign[]>('/history');
+  return data;
+}
+
+/** 添加浏览历史（同站牌重复浏览只更新时间） */
+export async function addHistory(signId: number): Promise<HistoryWithSign> {
+  const { data } = await api.post<HistoryWithSign>('/history', { signId });
+  return data;
+}
+
+/** 清空全部浏览历史 */
+export async function clearHistory(): Promise<void> {
+  await api.delete('/history');
+}
+
+/** 获取某站牌的备注 */
+export async function fetchNote(signId: number): Promise<SignNote> {
+  const { data } = await api.get<SignNote>(`/notes/${signId}`);
+  return data;
+}
+
+/** 保存某站牌的备注（不存在则创建，存在则更新） */
+export async function saveNote(signId: number, content: string): Promise<SignNote> {
+  try {
+    const { data } = await api.put<SignNote>(`/notes/${signId}`, { content });
+    return data;
+  } catch (err: any) {
+    if (err?.response?.status === 404 || err?.response?.status === 409) {
+      const { data } = await api.post<SignNote>('/notes', { signId, content });
+      return data;
+    }
+    throw err;
+  }
+}
+
+/** 删除某站牌的备注 */
+export async function deleteNote(signId: number): Promise<void> {
+  await api.delete(`/notes/${signId}`);
+}
+
+/** 获取综合统计数据（城市+年代分布） */
+export async function fetchStats(): Promise<StatsResponse> {
+  const { data } = await api.get<StatsResponse>('/stats');
   return data;
 }

@@ -79,7 +79,7 @@ onMounted(() => {
             <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 class="text-3xl font-bold text-slate-800">{{ sign.city }}</h2>
-                <p class="mt-1 text-slate-400">公交站牌设计记录 #{{ sign.id }}</p>
+                <p class="mt-1 text-slate-500"><span class="font-medium">{{ sign.province }}</span> · 公交站牌设计记录 #{{ sign.id }}</p>
               </div>
               <div class="flex flex-wrap gap-2">
                 <Tag :value="sign.era" severity="info" />
@@ -102,7 +102,11 @@ onMounted(() => {
               <p class="leading-relaxed text-slate-700">{{ sign.styleDescription }}</p>
             </section>
 
-            <section class="mb-8 grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4 md:grid-cols-3">
+            <section class="mb-8 grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4 md:grid-cols-4">
+              <div>
+                <p class="text-xs text-slate-400">省份</p>
+                <p class="font-medium">{{ sign.province }}</p>
+              </div>
               <div>
                 <p class="text-xs text-slate-400">城市</p>
                 <p class="font-medium">{{ sign.city }}</p>

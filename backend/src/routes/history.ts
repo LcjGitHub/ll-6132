@@ -10,6 +10,7 @@ interface HistoryDbRow {
   id: number;
   sign_id: number;
   viewed_at: string;
+  province: string;
   city: string;
   style_description: string;
   era: string;
@@ -24,6 +25,7 @@ function rowToHistoryWithSign(row: HistoryDbRow): HistoryWithSign {
     viewedAt: row.viewed_at,
     sign: {
       id: row.sign_id,
+      province: row.province,
       city: row.city,
       styleDescription: row.style_description,
       era: row.era,
@@ -68,7 +70,7 @@ router.post('/', (req: Request, res: Response) => {
 
   const row = db.prepare(`
     SELECT h.id, h.sign_id, h.viewed_at,
-           s.city, s.style_description, s.era, s.in_use, s.image_url
+           s.province, s.city, s.style_description, s.era, s.in_use, s.image_url
     FROM history h
     JOIN signs s ON h.sign_id = s.id
     WHERE h.sign_id = ?
@@ -81,7 +83,7 @@ router.post('/', (req: Request, res: Response) => {
 router.get('/', (_req: Request, res: Response) => {
   const rows = db.prepare(`
     SELECT h.id, h.sign_id, h.viewed_at,
-           s.city, s.style_description, s.era, s.in_use, s.image_url
+           s.province, s.city, s.style_description, s.era, s.in_use, s.image_url
     FROM history h
     JOIN signs s ON h.sign_id = s.id
     ORDER BY h.viewed_at DESC

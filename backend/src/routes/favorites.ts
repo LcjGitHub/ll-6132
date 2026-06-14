@@ -8,6 +8,7 @@ interface FavoriteDbRow {
   id: number;
   sign_id: number;
   created_at: string;
+  province: string;
   city: string;
   style_description: string;
   era: string;
@@ -22,6 +23,7 @@ function rowToFavoriteWithSign(row: FavoriteDbRow): FavoriteWithSign {
     createdAt: row.created_at,
     sign: {
       id: row.sign_id,
+      province: row.province,
       city: row.city,
       styleDescription: row.style_description,
       era: row.era,
@@ -58,7 +60,7 @@ router.post('/', (req: Request, res: Response) => {
   const row = db
     .prepare(`
       SELECT f.id, f.sign_id, f.created_at,
-             s.city, s.style_description, s.era, s.in_use, s.image_url
+             s.province, s.city, s.style_description, s.era, s.in_use, s.image_url
       FROM favorites f
       JOIN signs s ON f.sign_id = s.id
       WHERE f.id = ?
@@ -89,7 +91,7 @@ router.get('/', (_req: Request, res: Response) => {
   const rows = db
     .prepare(`
       SELECT f.id, f.sign_id, f.created_at,
-             s.city, s.style_description, s.era, s.in_use, s.image_url
+             s.province, s.city, s.style_description, s.era, s.in_use, s.image_url
       FROM favorites f
       JOIN signs s ON f.sign_id = s.id
       ORDER BY f.created_at DESC

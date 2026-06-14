@@ -37,7 +37,7 @@ function goDetail(id: number) {
 
 function confirmRemoveFavorite(sign: BusSign) {
   confirm.require({
-    message: `确定取消收藏「${sign.city}」站牌吗？`,
+    message: `确定取消收藏「${sign.province} ${sign.city}」站牌吗？`,
     header: '确认取消收藏',
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: '取消收藏',
@@ -126,7 +126,10 @@ function formatDate(dateStr: string): string {
           </div>
           <div class="p-4">
             <div class="mb-1 flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-slate-800">{{ fav.sign.city }}</h3>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-800">{{ fav.sign.city }}</h3>
+                <p class="text-xs text-slate-400">{{ fav.sign.province }}</p>
+              </div>
               <span class="text-sm text-slate-400">{{ fav.sign.era }}</span>
             </div>
             <div v-if="fav.sign.tags && fav.sign.tags.length > 0" class="mb-2 flex flex-wrap gap-1">
@@ -155,17 +158,21 @@ function formatDate(dateStr: string): string {
       <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-lg font-semibold">
-            {{ previewSign ? `${previewSign.city} · 站牌预览` : '站牌预览' }}
+            {{ previewSign ? `${previewSign.province} ${previewSign.city} · 站牌预览` : '站牌预览' }}
           </h3>
           <Button icon="pi pi-times" text rounded @click="previewVisible = false" />
         </div>
         <template v-if="previewSign">
           <img
             :src="previewSign.imageUrl"
-            :alt="`${previewSign.city}站牌`"
+            :alt="`${previewSign.province} ${previewSign.city}站牌`"
             class="mb-4 w-full rounded-lg object-cover"
           />
           <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-slate-400">省份</dt>
+              <dd class="font-medium">{{ previewSign.province }}</dd>
+            </div>
             <div class="flex justify-between">
               <dt class="text-slate-400">城市</dt>
               <dd class="font-medium">{{ previewSign.city }}</dd>

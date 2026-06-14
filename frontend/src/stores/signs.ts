@@ -14,6 +14,7 @@ export const useSignsStore = defineStore('signs', () => {
   const sortBy = ref<SortField>('id');
   const sortOrder = ref<SortOrder>('asc');
   const filters = reactive<SignFilters>({
+    province: undefined,
     city: undefined,
     era: undefined,
     inUse: false,
@@ -32,6 +33,12 @@ export const useSignsStore = defineStore('signs', () => {
   const historyLoading = ref(false);
 
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+
+  const provinceOptions = computed(() => {
+    const set = new Set<string>();
+    allSigns.value.forEach((s) => set.add(s.province));
+    return Array.from(set).sort();
+  });
 
   const cityOptions = computed(() => {
     const set = new Set<string>();
@@ -63,6 +70,7 @@ export const useSignsStore = defineStore('signs', () => {
 
   function buildApiFilters(): SignFilters {
     const apiFilters: SignFilters = {};
+    if (filters.province) apiFilters.province = filters.province;
     if (filters.city) apiFilters.city = filters.city;
     if (filters.era) apiFilters.era = filters.era;
     if (filters.inUse) apiFilters.inUse = true;
@@ -160,6 +168,7 @@ export const useSignsStore = defineStore('signs', () => {
   }
 
   async function resetFilters() {
+    filters.province = undefined;
     filters.city = undefined;
     filters.era = undefined;
     filters.inUse = false;
@@ -223,6 +232,7 @@ export const useSignsStore = defineStore('signs', () => {
     tags,
     tagsLoading,
     tagOptions,
+    provinceOptions,
     cityOptions,
     eraOptions,
     favorites,

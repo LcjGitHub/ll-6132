@@ -132,7 +132,10 @@ function formatDate(dateStr: string): string {
           </div>
           <div class="p-4">
             <div class="mb-1 flex items-center justify-between">
-              <h3 class="text-lg font-semibold text-slate-800 cursor-pointer hover:text-brand-600" @click="goDetail(item.sign.id)">{{ item.sign.city }}</h3>
+              <div>
+                <h3 class="text-lg font-semibold text-slate-800 cursor-pointer hover:text-brand-600" @click="goDetail(item.sign.id)">{{ item.sign.city }}</h3>
+                <p class="text-xs text-slate-400">{{ item.sign.province }}</p>
+              </div>
               <span class="text-sm text-slate-400">{{ item.sign.era }}</span>
             </div>
             <p class="mb-1 text-xs text-slate-400">
@@ -152,17 +155,21 @@ function formatDate(dateStr: string): string {
       <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-lg font-semibold">
-            {{ previewSign ? `${previewSign.city} · 站牌预览` : '站牌预览' }}
+            {{ previewSign ? `${previewSign.province} ${previewSign.city} · 站牌预览` : '站牌预览' }}
           </h3>
           <Button icon="pi pi-times" text rounded @click="previewVisible = false" />
         </div>
         <template v-if="previewSign">
           <img
             :src="previewSign.imageUrl"
-            :alt="`${previewSign.city}站牌`"
+            :alt="`${previewSign.province} ${previewSign.city}站牌`"
             class="mb-4 w-full rounded-lg object-cover"
           />
           <dl class="space-y-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-slate-400">省份</dt>
+              <dd class="font-medium">{{ previewSign.province }}</dd>
+            </div>
             <div class="flex justify-between">
               <dt class="text-slate-400">城市</dt>
               <dd class="font-medium">{{ previewSign.city }}</dd>

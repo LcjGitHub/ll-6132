@@ -11,12 +11,15 @@ describe('GET /api/signs - 站牌列表接口', () => {
       expect(res.body.length).toBe(5);
       const cities = res.body.map((item: BusSign) => item.city);
       expect(cities).toEqual(expect.arrayContaining(['北京', '上海', '成都', '广州', '西安']));
+      const provinces = res.body.map((item: BusSign) => item.province);
+      expect(provinces).toEqual(expect.arrayContaining(['北京市', '上海市', '四川省', '广东省', '陕西省']));
     });
 
     it('每条站牌应包含完整字段', async () => {
       const res = await testRequest().get('/api/signs');
       const sign = res.body[0];
       expect(sign).toHaveProperty('id');
+      expect(sign).toHaveProperty('province');
       expect(sign).toHaveProperty('city');
       expect(sign).toHaveProperty('styleDescription');
       expect(sign).toHaveProperty('era');
@@ -24,6 +27,36 @@ describe('GET /api/signs - 站牌列表接口', () => {
       expect(sign).toHaveProperty('imageUrl');
       expect(sign).toHaveProperty('tags');
       expect(Array.isArray(sign.tags)).toBe(true);
+    });
+  });
+
+  describe('按省份筛选', () => {
+    it('筛选四川省的站牌', async () => {
+      const res = await testRequest().get('/api/signs').query({ province: '四川省' });
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(1);
+      expect(res.body[0].province).toBe('四川省');
+      expect(res.body[0].city).toBe('成都');
+    });
+
+    it('筛选不存在的省份应返回空数组', async () => {
+      const res = await testRequest().get('/api/signs').query({ province: '不存在的省份' });
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(0);
+    });
+
+    it('空字符串省份参数应忽略筛选', async () => {
+      const res = await testRequest().get('/api/signs').query({ province: '' });
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(5);
+    });
+
+    it('省份 + 城市组合筛选', async () => {
+      const res = await testRequest().get('/api/signs').query({ province: '广东省', city: '广州' });
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(1);
+      expect(res.body[0].province).toBe('广东省');
+      expect(res.body[0].city).toBe('广州');
     });
   });
 

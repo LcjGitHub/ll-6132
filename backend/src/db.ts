@@ -24,6 +24,7 @@ export function createDatabase(customPath?: string): DbInstance {
   db.exec(`
     CREATE TABLE IF NOT EXISTS signs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      province TEXT NOT NULL,
       city TEXT NOT NULL,
       style_description TEXT NOT NULL,
       era TEXT NOT NULL,
@@ -31,6 +32,14 @@ export function createDatabase(customPath?: string): DbInstance {
       image_url TEXT NOT NULL
     )
   `);
+
+  const columns = db
+    .prepare("PRAGMA table_info(signs)")
+    .all() as { name: string }[];
+  const hasProvince = columns.some((c) => c.name === "province");
+  if (!hasProvince) {
+    db.exec(`ALTER TABLE signs ADD COLUMN province TEXT NOT NULL DEFAULT ''`);
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS favorites (

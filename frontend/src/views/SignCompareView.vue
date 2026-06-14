@@ -128,7 +128,7 @@ function goDetail(id: number) {
               <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 class="text-2xl font-bold text-slate-800">{{ sign.city }}</h2>
-                  <p class="mt-1 text-sm text-slate-400">记录 #{{ sign.id }}</p>
+                  <p class="mt-1 text-sm text-slate-500"><span class="font-medium">{{ sign.province }}</span> · 记录 #{{ sign.id }}</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <Tag :value="sign.era" severity="info" />
@@ -149,6 +149,10 @@ function goDetail(id: number) {
               <dl class="space-y-4">
                 <div class="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4">
                   <div>
+                    <p class="text-xs text-slate-400">省份</p>
+                    <p class="mt-1 font-medium text-slate-800">{{ sign.province }}</p>
+                  </div>
+                  <div>
                     <p class="text-xs text-slate-400">城市</p>
                     <p class="mt-1 font-medium text-slate-800">{{ sign.city }}</p>
                   </div>
@@ -160,7 +164,7 @@ function goDetail(id: number) {
                     <p class="text-xs text-slate-400">使用状态</p>
                     <p class="mt-1 font-medium text-slate-800">{{ sign.inUse ? '使用中' : '已停用' }}</p>
                   </div>
-                  <div>
+                  <div class="col-span-2">
                     <p class="text-xs text-slate-400">图片链接</p>
                     <a
                       :href="sign.imageUrl"
@@ -190,15 +194,24 @@ function goDetail(id: number) {
                   <th class="w-1/4 py-3 text-left font-medium text-slate-400">属性</th>
                   <th class="w-3/8 py-3 text-left font-medium text-brand-600">
                     <span class="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">A</span>
-                    {{ leftSign.city }}
+                    {{ leftSign.province }} {{ leftSign.city }}
                   </th>
                   <th class="w-3/8 py-3 text-left font-medium text-amber-600">
                     <span class="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs text-white">B</span>
-                    {{ rightSign.city }}
+                    {{ rightSign.province }} {{ rightSign.city }}
                   </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
+                <tr>
+                  <td class="py-3 text-slate-500">省份</td>
+                  <td class="py-3 font-medium" :class="leftSign.province === rightSign.province ? 'text-slate-600' : 'text-brand-700'">
+                    {{ leftSign.province }}
+                  </td>
+                  <td class="py-3 font-medium" :class="leftSign.province === rightSign.province ? 'text-slate-600' : 'text-amber-700'">
+                    {{ rightSign.province }}
+                  </td>
+                </tr>
                 <tr>
                   <td class="py-3 text-slate-500">年代</td>
                   <td class="py-3 font-medium" :class="leftSign.era === rightSign.era ? 'text-slate-600' : 'text-brand-700'">
