@@ -11,6 +11,7 @@ import type {
   Tag,
   PaginatedResponse,
   HistoryWithSign,
+  SignNote,
 } from '@/types/sign';
 
 const api = axios.create({
@@ -164,4 +165,21 @@ export async function addHistory(signId: number): Promise<HistoryWithSign> {
 /** 清空全部浏览历史 */
 export async function clearHistory(): Promise<void> {
   await api.delete('/history');
+}
+
+/** 获取某站牌的备注 */
+export async function fetchNote(signId: number): Promise<SignNote> {
+  const { data } = await api.get<SignNote>(`/notes/${signId}`);
+  return data;
+}
+
+/** 保存某站牌的备注（创建或更新） */
+export async function saveNote(signId: number, content: string): Promise<SignNote> {
+  const { data } = await api.put<SignNote>(`/notes/${signId}`, { content });
+  return data;
+}
+
+/** 删除某站牌的备注 */
+export async function deleteNote(signId: number): Promise<void> {
+  await api.delete(`/notes/${signId}`);
 }

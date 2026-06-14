@@ -4,6 +4,7 @@ import signsRouter from './routes/signs';
 import statsRouter from './routes/stats';
 import favoritesRouter from './routes/favorites';
 import historyRouter from './routes/history';
+import notesRouter from './routes/notes';
 import { tagsRouter } from './routes/tags';
 import './seed';
 
@@ -21,6 +22,7 @@ export function createApp() {
   app.use('/api/stats', statsRouter);
   app.use('/api/favorites', favoritesRouter);
   app.use('/api/tags', tagsRouter);
+  app.use('/api/notes', notesRouter);
   app.use('/api/history', historyRouter);
 
   return app;

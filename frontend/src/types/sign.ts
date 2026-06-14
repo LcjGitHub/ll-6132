@@ -95,3 +95,11 @@ export interface HistoryWithSign {
   viewedAt: string;
   sign: BusSign;
 }
+
+/** 站牌备注 */
+export interface SignNote {
+  id: number;
+  signId: number;
+  content: string;
+  updatedAt: string;
+}

@@ -71,6 +71,16 @@ export function createDatabase(customPath?: string): DbInstance {
     )
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sign_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sign_id INTEGER NOT NULL UNIQUE,
+      content TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (sign_id) REFERENCES signs(id) ON DELETE CASCADE
+    )
+  `);
+
   return db;
 }
 

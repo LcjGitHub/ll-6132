@@ -79,6 +79,19 @@ export interface HistoryWithSign extends HistoryRecord {
   sign: BusSign;
 }
 
+/** 站牌备注 */
+export interface SignNote {
+  id: number;
+  signId: number;
+  content: string;
+  updatedAt: string;
+}
+
+/** 创建/更新备注请求体 */
+export interface SignNoteInput {
+  content: string;
+}
+
 /** 分页响应 */
 export interface PaginatedResponse<T> {
   items: T[];

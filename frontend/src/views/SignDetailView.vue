@@ -6,11 +6,12 @@ import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+import Textarea from 'primevue/textarea';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import { useSignsStore } from '@/stores/signs';
-import { fetchSign, fetchSignIds } from '@/api/signs';
-import type { BusSign } from '@/types/sign';
+import { fetchSign, fetchSignIds, fetchNote, saveNote, deleteNote } from '@/api/signs';
+import type { BusSign, SignNote } from '@/types/sign';
 
 const props = defineProps<{ id: string }>();
 
@@ -25,6 +26,12 @@ const formVisible = ref(false);
 const signIds = ref<number[]>([]);
 const signIdsError = ref(false);
 const signIdsLoading = ref(false);
+
+const note = ref<SignNote | null>(null);
+const noteLoading = ref(false);
+const noteEditing = ref(false);
+const noteContent = ref('');
+const noteSaving = ref(false);
 
 const signId = computed(() => Number(props.id));
 
@@ -41,6 +48,67 @@ const nextId = computed(() => {
 onMounted(async () => {
   await Promise.all([loadDetail(), loadSignIds(), store.loadFavorites()]);
 });
+
+async function loadNote() {
+  noteLoading.value = true;
+  try {
+    note.value = await fetchNote(signId.value);
+    noteContent.value = note.value.content;
+  } catch {
+    note.value = null;
+    noteContent.value = '';
+  } finally {
+    noteLoading.value = false;
+  }
+}
+
+function startEditNote() {
+  noteContent.value = note.value?.content ?? '';
+  noteEditing.value = true;
+}
+
+function cancelEditNote() {
+  noteContent.value = note.value?.content ?? '';
+  noteEditing.value = false;
+}
+
+async function handleSaveNote() {
+  if (noteContent.value.length > 200) return;
+  noteSaving.value = true;
+  try {
+    const saved = await saveNote(signId.value, noteContent.value);
+    note.value = saved;
+    noteEditing.value = false;
+    toast.add({ severity: 'success', summary: '备注已保存', life: 2000 });
+  } catch {
+    toast.add({ severity: 'error', summary: '保存备注失败', life: 3000 });
+  } finally {
+    noteSaving.value = false;
+  }
+}
+
+async function handleDeleteNote() {
+  if (!note.value || !note.value.id) return;
+  confirm.require({
+    message: '确定删除此站牌的备注吗？',
+    header: '确认删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await deleteNote(signId.value);
+        note.value = null;
+        noteContent.value = '';
+        noteEditing.value = false;
+        toast.add({ severity: 'success', summary: '备注已删除', life: 2000 });
+      } catch {
+        toast.add({ severity: 'error', summary: '删除备注失败', life: 3000 });
+      }
+    },
+  });
+}
 
 /** 加载站牌编号列表 */
 async function loadSignIds() {
@@ -75,6 +143,7 @@ async function loadDetail() {
     }
     if (sign.value) {
       store.addToHistory(signId.value);
+      loadNote();
     }
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '站牌不存在或加载失败', life: 3000 });
@@ -106,6 +175,9 @@ function goNext() {
 watch(
   () => props.id,
   () => {
+    note.value = null;
+    noteEditing.value = false;
+    noteContent.value = '';
     loadDetail();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -227,6 +299,67 @@ async function handleToggleFavorite() {
                   查看原图
                 </a>
               </div>
+            </section>
+
+            <section class="mb-8">
+              <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-400">个人备注</h3>
+                <div v-if="!noteEditing" class="flex gap-2">
+                  <Button
+                    label="编辑"
+                    icon="pi pi-pencil"
+                    size="small"
+                    text
+                    @click="startEditNote"
+                  />
+                  <Button
+                    v-if="note && note.id"
+                    label="删除"
+                    icon="pi pi-trash"
+                    size="small"
+                    severity="danger"
+                    text
+                    @click="handleDeleteNote"
+                  />
+                </div>
+              </div>
+              <div v-if="noteLoading" class="py-4 text-center">
+                <ProgressSpinner stroke-width="4" class="!h-6 !w-6" />
+              </div>
+              <template v-else-if="noteEditing">
+                <Textarea
+                  v-model="noteContent"
+                  :maxlength="200"
+                  autoResize
+                  rows="3"
+                  class="w-full"
+                  placeholder="输入备注内容（不超过200字）"
+                />
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="text-xs" :class="noteContent.length > 200 ? 'text-rose-500' : 'text-slate-400'">
+                    {{ noteContent.length }} / 200
+                  </span>
+                  <div class="flex gap-2">
+                    <Button
+                      label="取消"
+                      size="small"
+                      outlined
+                      @click="cancelEditNote"
+                    />
+                    <Button
+                      label="保存"
+                      size="small"
+                      :loading="noteSaving"
+                      :disabled="noteContent.length > 200"
+                      @click="handleSaveNote"
+                    />
+                  </div>
+                </div>
+              </template>
+              <template v-else>
+                <p v-if="note && note.content" class="whitespace-pre-wrap leading-relaxed text-slate-700">{{ note.content }}</p>
+                <p v-else class="italic text-slate-400">暂无备注</p>
+              </template>
             </section>
 
             <div class="flex flex-wrap gap-3">
