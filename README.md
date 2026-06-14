@@ -62,6 +62,70 @@ npm run dev
 1. 确保网络可访问 GitHub Releases
 2. 或安装 [Python 3](https://www.python.org/) 与 [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) 后重新执行 `npm install`
 
+## 工程化脚本
+
+### 一键安装依赖
+
+在项目根目录执行以下命令，可一次性安装根目录、后端和前端的所有依赖：
+
+```bash
+npm run install:all
+```
+
+### 本地开发
+
+项目提供统一的启动脚本，支持以下三种启动方式：
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 同时启动后端（端口 4000）和前端（端口 4101）开发服务器，日志带颜色区分 |
+| `npm run dev:backend` | 仅启动后端开发服务器 |
+| `npm run dev:frontend` | 仅启动前端开发服务器 |
+
+> **提示**：使用 `npm run dev` 时，两个服务的日志会在同一终端输出，蓝色为后端日志，绿色为前端日志。按下 `Ctrl + C` 可同时停止两个服务。
+
+### 类型检查与构建
+
+| 命令 | 说明 |
+|------|------|
+| `npm run typecheck` | 依次执行后端和前端的 TypeScript 类型检查 |
+| `npm run typecheck:backend` | 仅检查后端 TypeScript 类型（通过 tsc 编译实现） |
+| `npm run typecheck:frontend` | 仅检查前端 TypeScript 类型（通过 vue-tsc 实现） |
+| `npm run build` | 依次构建后端和前端生产版本 |
+| `npm run build:backend` | 仅构建后端，输出到 `backend/dist` 目录 |
+| `npm run build:frontend` | 仅构建前端，输出到 `frontend/dist` 目录 |
+
+### 数据初始化
+
+如需重新插入 seed 数据，可执行：
+
+```bash
+npm run seed
+```
+
+## 持续集成（CI）
+
+项目配置了 GitHub Actions 持续集成流水线，配置文件位于 `.github/workflows/ci.yml`。
+
+### 触发时机
+
+- **代码推送**：向任意分支推送代码时自动触发
+- **合并请求**：创建或更新 Pull Request 时自动触发
+
+### 流水线步骤
+
+流水线在 Ubuntu 环境（Node.js 20.x）上执行以下步骤，**任一步骤失败则整个流水线标记为失败**：
+
+1. **检出代码**：拉取最新代码
+2. **安装依赖**：分别安装根目录、后端、前端的依赖（使用 `npm ci` 确保版本一致）
+3. **后端编译**：执行 `tsc` 编译后端 TypeScript 代码，验证类型正确性
+4. **前端类型检查**：执行 `vue-tsc -b` 对前端 Vue + TypeScript 代码进行类型检查
+5. **前端构建**：执行 `vite build` 构建前端生产版本
+
+### 查看结果
+
+推送代码后，可在 GitHub 仓库的 **Actions** 标签页查看流水线执行状态和详细日志。
+
 ## API 接口
 
 | 方法 | 路径 | 说明 |
