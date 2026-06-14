@@ -93,6 +93,12 @@ export async function fetchSignIds(): Promise<number[]> {
   return data;
 }
 
+/** 随机获取一条站牌 */
+export async function fetchRandomSign(): Promise<BusSign> {
+  const { data } = await api.get<BusSign>('/signs/random');
+  return data;
+}
+
 /** 新建站牌 */
 export async function createSign(input: BusSignInput): Promise<BusSign> {
   const { data } = await api.post<BusSign>('/signs', input);

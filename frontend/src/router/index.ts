@@ -29,6 +29,11 @@ const router = createRouter({
       component: () => import('@/views/TagManageView.vue'),
     },
     {
+      path: '/random',
+      name: 'random-discover',
+      component: () => import('@/views/RandomDiscoverView.vue'),
+    },
+    {
       path: '/signs/compare',
       name: 'sign-compare',
       component: () => import('@/views/SignCompareView.vue'),

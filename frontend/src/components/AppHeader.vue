@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
-import { fetchRandomSign } from '@/api/signs';
 
 const props = withDefaults(
   defineProps<{
@@ -25,9 +23,7 @@ const props = withDefaults(
 
 const router = useRouter();
 const route = useRoute();
-const toast = useToast();
 
-const randomLoading = ref(false);
 const currentRouteName = computed(() => route.name);
 
 const paddingClass = computed(() =>
@@ -59,17 +55,8 @@ const navItems: NavItem[] = [
   { label: '统计', icon: 'pi pi-chart-bar', routeName: 'stats' },
 ];
 
-async function goRandom() {
-  if (randomLoading.value) return;
-  randomLoading.value = true;
-  try {
-    const sign = await fetchRandomSign();
-    router.push({ name: 'sign-detail', params: { id: sign.id } });
-  } catch {
-    toast.add({ severity: 'error', summary: '加载失败', detail: '无法获取随机站牌', life: 3000 });
-  } finally {
-    randomLoading.value = false;
-  }
+function goRandom() {
+  router.push({ name: 'random-discover' });
 }
 </script>
 
@@ -113,8 +100,12 @@ async function goRandom() {
             icon="pi pi-compass"
             label="随机发现"
             outlined
-            :loading="randomLoading"
-            class="!border-white/30 !text-white hover:!bg-white/10"
+            :class="[
+              currentRouteName === 'random-discover'
+                ? '!bg-white/20 !border-white/50'
+                : '!border-white/30',
+              '!text-white hover:!bg-white/10',
+            ]"
             @click="goRandom"
           />
           <slot name="right" />
