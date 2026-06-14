@@ -111,6 +111,46 @@ describe('收藏接口', () => {
       expect(res.body[0].signId).toBe(2);
       expect(res.body[1].signId).toBe(1);
     });
+
+    it('默认按创建时间倒序排列（不传 sortOrder）', async () => {
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(1, '2024-01-01 10:00:00');
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(2, '2024-01-02 10:00:00');
+      const res = await testRequest().get('/api/favorites');
+      expect(res.body[0].signId).toBe(2);
+      expect(res.body[1].signId).toBe(1);
+    });
+
+    it('sortOrder=desc 按创建时间倒序排列（最新优先）', async () => {
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(1, '2024-01-01 10:00:00');
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(2, '2024-01-02 10:00:00');
+      const res = await testRequest().get('/api/favorites?sortOrder=desc');
+      expect(res.body[0].signId).toBe(2);
+      expect(res.body[1].signId).toBe(1);
+    });
+
+    it('sortOrder=asc 按创建时间正序排列（最早优先）', async () => {
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(1, '2024-01-01 10:00:00');
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(2, '2024-01-02 10:00:00');
+      const res = await testRequest().get('/api/favorites?sortOrder=asc');
+      expect(res.body[0].signId).toBe(1);
+      expect(res.body[1].signId).toBe(2);
+    });
+
+    it('sortOrder=ASC（大写）按创建时间正序排列', async () => {
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(1, '2024-01-01 10:00:00');
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(2, '2024-01-02 10:00:00');
+      const res = await testRequest().get('/api/favorites?sortOrder=ASC');
+      expect(res.body[0].signId).toBe(1);
+      expect(res.body[1].signId).toBe(2);
+    });
+
+    it('无效 sortOrder 参数默认倒序排列', async () => {
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(1, '2024-01-01 10:00:00');
+      db.prepare('INSERT INTO favorites (sign_id, created_at) VALUES (?, ?)').run(2, '2024-01-02 10:00:00');
+      const res = await testRequest().get('/api/favorites?sortOrder=invalid');
+      expect(res.body[0].signId).toBe(2);
+      expect(res.body[1].signId).toBe(1);
+    });
   });
 
   describe('GET /api/favorites/check/:signId - 检查收藏状态', () => {

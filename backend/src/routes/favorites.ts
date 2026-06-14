@@ -86,15 +86,16 @@ router.delete('/:signId', (req: Request, res: Response) => {
   res.status(204).send();
 });
 
-/** GET /api/favorites — 查询收藏列表（含站牌详情） */
-router.get('/', (_req: Request, res: Response) => {
+/** GET /api/favorites — 查询收藏列表（含站牌详情，支持按收藏时间排序） */
+router.get('/', (req: Request, res: Response) => {
+  const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const rows = db
     .prepare(`
       SELECT f.id, f.sign_id, f.created_at,
              s.province, s.city, s.style_description, s.era, s.in_use, s.image_url
       FROM favorites f
       JOIN signs s ON f.sign_id = s.id
-      ORDER BY f.created_at DESC
+      ORDER BY f.created_at ${sortOrder}
     `)
     .all() as FavoriteDbRow[];
 

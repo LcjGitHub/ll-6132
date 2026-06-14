@@ -167,9 +167,11 @@ export async function fetchTagStats(): Promise<TagStats[]> {
   return data;
 }
 
-/** 获取收藏列表（含站牌详情） */
-export async function fetchFavorites(): Promise<FavoriteWithSign[]> {
-  const { data } = await api.get<FavoriteWithSign[]>('/favorites');
+/** 获取收藏列表（含站牌详情，支持按收藏时间排序） */
+export async function fetchFavorites(sortOrder?: 'asc' | 'desc'): Promise<FavoriteWithSign[]> {
+  const params: Record<string, string> = {};
+  if (sortOrder) params.sortOrder = sortOrder;
+  const { data } = await api.get<FavoriteWithSign[]>('/favorites', { params });
   return data;
 }
 

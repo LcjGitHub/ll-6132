@@ -102,10 +102,10 @@ export const useSignsStore = defineStore('signs', () => {
     }
   }
 
-  async function loadFavorites() {
+  async function loadFavorites(sortOrder?: 'asc' | 'desc') {
     favoritesLoading.value = true;
     try {
-      favorites.value = await signsApi.fetchFavorites();
+      favorites.value = await signsApi.fetchFavorites(sortOrder);
     } finally {
       favoritesLoading.value = false;
     }
