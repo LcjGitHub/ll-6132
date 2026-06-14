@@ -73,12 +73,20 @@ async function loadDetail() {
     } else {
       sign.value = await fetchSign(signId.value);
     }
+    if (sign.value) {
+      store.addToHistory(signId.value);
+    }
   } catch {
     toast.add({ severity: 'error', summary: '错误', detail: '站牌不存在或加载失败', life: 3000 });
     router.push('/');
   } finally {
     loading.value = false;
   }
+}
+
+/** 跳转到浏览历史页 */
+function goHistory() {
+  router.push({ name: 'history' });
 }
 
 /** 跳转到上一条 */
@@ -221,13 +229,14 @@ async function handleToggleFavorite() {
               </div>
             </section>
 
-            <div class="flex gap-3">
+            <div class="flex flex-wrap gap-3">
               <Button
                 :label="store.isFavorited(sign.id) ? '已收藏' : '收藏'"
                 :icon="store.isFavorited(sign.id) ? 'pi pi-heart-fill' : 'pi pi-heart'"
                 :severity="store.isFavorited(sign.id) ? 'danger' : undefined"
                 @click="handleToggleFavorite"
               />
+              <Button label="浏览历史" icon="pi pi-history" outlined @click="goHistory" />
               <Button label="编辑" icon="pi pi-pencil" @click="formVisible = true" />
               <Button label="删除" icon="pi pi-trash" severity="danger" outlined @click="confirmDelete" />
             </div>

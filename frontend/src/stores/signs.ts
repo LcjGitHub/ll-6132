@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, computed } from 'vue';
-import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign, Tag, SortField, SortOrder } from '@/types/sign';
+import type { BusSign, BusSignInput, SignFilters, FavoriteWithSign, HistoryWithSign, Tag, SortField, SortOrder } from '@/types/sign';
 import * as signsApi from '@/api/signs';
 
 export const useSignsStore = defineStore('signs', () => {
@@ -27,6 +27,9 @@ export const useSignsStore = defineStore('signs', () => {
   const favorites = ref<FavoriteWithSign[]>([]);
   const favoritesLoading = ref(false);
   const favoriteSignIds = computed(() => new Set(favorites.value.map((f) => f.signId)));
+
+  const history = ref<HistoryWithSign[]>([]);
+  const historyLoading = ref(false);
 
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
 
@@ -117,6 +120,32 @@ export const useSignsStore = defineStore('signs', () => {
     return favoriteSignIds.value.has(signId);
   }
 
+  async function loadHistory() {
+    historyLoading.value = true;
+    try {
+      history.value = await signsApi.fetchHistory();
+    } finally {
+      historyLoading.value = false;
+    }
+  }
+
+  async function addToHistory(signId: number) {
+    try {
+      const created = await signsApi.addHistory(signId);
+      const existingIndex = history.value.findIndex((h) => h.signId === signId);
+      if (existingIndex !== -1) {
+        history.value.splice(existingIndex, 1);
+      }
+      history.value.unshift(created);
+    } catch {
+    }
+  }
+
+  async function clearAllHistory() {
+    await signsApi.clearHistory();
+    history.value = [];
+  }
+
   async function setFilter<K extends keyof SignFilters>(key: K, value: SignFilters[K]) {
     filters[key] = value;
     page.value = 1;
@@ -199,11 +228,16 @@ export const useSignsStore = defineStore('signs', () => {
     favorites,
     favoritesLoading,
     favoriteSignIds,
+    history,
+    historyLoading,
     loadSigns,
     loadTags,
     loadFavorites,
     toggleFavorite,
     isFavorited,
+    loadHistory,
+    addToHistory,
+    clearAllHistory,
     setFilter,
     setSort,
     resetFilters,

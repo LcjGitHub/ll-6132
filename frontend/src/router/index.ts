@@ -9,6 +9,11 @@ const router = createRouter({
       component: () => import('@/views/SignListView.vue'),
     },
     {
+      path: '/history',
+      name: 'history',
+      component: () => import('@/views/HistoryView.vue'),
+    },
+    {
       path: '/favorites',
       name: 'favorites',
       component: () => import('@/views/FavoritesView.vue'),

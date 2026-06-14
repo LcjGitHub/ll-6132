@@ -54,6 +54,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: '首页', icon: 'pi pi-home', routeName: 'home' },
+  { label: '历史', icon: 'pi pi-history', routeName: 'history' },
   { label: '收藏', icon: 'pi pi-heart', routeName: 'favorites' },
   { label: '统计', icon: 'pi pi-chart-bar', routeName: 'stats' },
 ];

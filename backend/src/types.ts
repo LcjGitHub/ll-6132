@@ -66,6 +66,19 @@ export interface FavoriteWithSign extends Favorite {
   sign: BusSign;
 }
 
+/** 浏览历史记录 */
+export interface HistoryRecord {
+  id: number;
+  signId: number;
+  viewedAt: string;
+  sign?: BusSign;
+}
+
+/** 浏览历史记录（包含站牌详情） */
+export interface HistoryWithSign extends HistoryRecord {
+  sign: BusSign;
+}
+
 /** 分页响应 */
 export interface PaginatedResponse<T> {
   items: T[];

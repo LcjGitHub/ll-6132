@@ -87,3 +87,11 @@ export interface FavoriteCheckResult {
   favorited: boolean;
   createdAt?: string;
 }
+
+/** 浏览历史记录（包含站牌详情） */
+export interface HistoryWithSign {
+  id: number;
+  signId: number;
+  viewedAt: string;
+  sign: BusSign;
+}

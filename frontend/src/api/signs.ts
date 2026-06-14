@@ -10,6 +10,7 @@ import type {
   FavoriteCheckResult,
   Tag,
   PaginatedResponse,
+  HistoryWithSign,
 } from '@/types/sign';
 
 const api = axios.create({
@@ -146,4 +147,21 @@ export async function removeFavorite(signId: number): Promise<void> {
 export async function checkFavorite(signId: number): Promise<FavoriteCheckResult> {
   const { data } = await api.get<FavoriteCheckResult>(`/favorites/check/${signId}`);
   return data;
+}
+
+/** 获取浏览历史列表（含站牌详情） */
+export async function fetchHistory(): Promise<HistoryWithSign[]> {
+  const { data } = await api.get<HistoryWithSign[]>('/history');
+  return data;
+}
+
+/** 记录浏览历史 */
+export async function addHistory(signId: number): Promise<HistoryWithSign> {
+  const { data } = await api.post<HistoryWithSign>('/history', { signId });
+  return data;
+}
+
+/** 清空全部浏览历史 */
+export async function clearHistory(): Promise<void> {
+  await api.delete('/history');
 }
