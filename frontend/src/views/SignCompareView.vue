@@ -5,6 +5,7 @@ import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+import AppHeader from '@/components/AppHeader.vue';
 import { fetchSignsBatch } from '@/api/signs';
 import type { BusSign } from '@/types/sign';
 
@@ -59,10 +60,6 @@ onMounted(async () => {
   await loadCompare();
 });
 
-function goBack() {
-  router.push('/');
-}
-
 function swapSigns() {
   signs.value = [signs.value[1], signs.value[0]];
 }
@@ -74,27 +71,17 @@ function goDetail(id: number) {
 
 <template>
   <div class="min-h-screen">
-    <header class="bg-brand-600 text-white shadow-md">
-      <div class="mx-auto max-w-6xl px-4 py-5">
+    <AppHeader title="站牌对比" show-back>
+      <template #right>
         <Button
-          icon="pi pi-arrow-left"
-          label="返回图鉴"
+          icon="pi pi-refresh"
+          label="交换位置"
           text
-          class="mb-2 !text-white hover:!bg-white/10"
-          @click="goBack"
+          class="!text-white hover:!bg-white/10"
+          @click="swapSigns"
         />
-        <div class="flex items-center justify-between">
-          <h1 class="text-xl font-bold">站牌对比</h1>
-          <Button
-            icon="pi pi-refresh"
-            label="交换位置"
-            text
-            class="!text-white hover:!bg-white/10"
-            @click="swapSigns"
-          />
-        </div>
-      </div>
-    </header>
+      </template>
+    </AppHeader>
 
     <main class="mx-auto max-w-6xl px-4 py-8">
       <div v-if="loading" class="flex justify-center py-20">

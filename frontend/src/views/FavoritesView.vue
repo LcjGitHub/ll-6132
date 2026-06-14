@@ -6,6 +6,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
+import AppHeader from '@/components/AppHeader.vue';
 import { useSignsStore } from '@/stores/signs';
 import type { BusSign } from '@/types/sign';
 
@@ -32,10 +33,6 @@ function openPreview(sign: BusSign) {
 
 function goDetail(id: number) {
   router.push({ name: 'sign-detail', params: { id } });
-}
-
-function goBack() {
-  router.push('/');
 }
 
 function confirmRemoveFavorite(sign: BusSign) {
@@ -75,26 +72,11 @@ function formatDate(dateStr: string): string {
 
 <template>
   <div class="min-h-screen">
-    <header class="bg-brand-600 text-white shadow-md">
-      <div class="mx-auto max-w-6xl px-4 py-6">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <i class="pi pi-heart-fill text-3xl" />
-            <div>
-              <h1 class="text-2xl font-bold tracking-tight">我的收藏</h1>
-              <p class="mt-1 text-sm text-blue-100">记录你喜欢的公交站牌设计</p>
-            </div>
-          </div>
-          <Button
-            icon="pi pi-arrow-left"
-            label="返回图鉴"
-            outlined
-            class="!border-white/30 !text-white hover:!bg-white/10"
-            @click="goBack"
-          />
-        </div>
-      </div>
-    </header>
+    <AppHeader
+      title="我的收藏"
+      subtitle="记录你喜欢的公交站牌设计"
+      icon="pi pi-heart-fill"
+    />
 
     <main class="mx-auto max-w-6xl px-4 py-8">
       <div class="mb-6">
@@ -113,7 +95,7 @@ function formatDate(dateStr: string): string {
       >
         <i class="pi pi-heart-o mb-3 text-4xl" />
         <p class="mb-4">还没有收藏任何站牌</p>
-        <Button label="去图鉴逛逛" icon="pi pi-arrow-right" @click="goBack" />
+        <Button label="去图鉴逛逛" icon="pi pi-arrow-right" @click="router.push('/')" />
       </div>
 
       <div v-else class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

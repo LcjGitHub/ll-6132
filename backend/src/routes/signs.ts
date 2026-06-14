@@ -186,6 +186,16 @@ router.get('/ids', (_req: Request, res: Response) => {
   res.json(rows.map((r) => r.id));
 });
 
+/** GET /api/signs/random — 获取随机站牌 */
+router.get('/random', (_req: Request, res: Response) => {
+  const row = db.prepare('SELECT * FROM signs ORDER BY RANDOM() LIMIT 1').get() as DbRow | undefined;
+  if (!row) {
+    res.status(404).json({ error: '暂无站牌数据' });
+    return;
+  }
+  res.json(rowToSign(row, true));
+});
+
 /** GET /api/signs/:id — 获取单条站牌 */
 router.get('/:id', (req: Request, res: Response) => {
   const row = db.prepare('SELECT * FROM signs WHERE id = ?').get(req.params.id) as DbRow | undefined;

@@ -7,6 +7,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import SignFormDialog from '@/components/SignFormDialog.vue';
+import AppHeader from '@/components/AppHeader.vue';
 import { useSignsStore } from '@/stores/signs';
 import { fetchSign, fetchSignIds } from '@/api/signs';
 import type { BusSign } from '@/types/sign';
@@ -80,11 +81,6 @@ async function loadDetail() {
   }
 }
 
-/** 返回列表 */
-function goBack() {
-  router.push('/');
-}
-
 /** 跳转到上一条 */
 function goPrev() {
   if (prevId.value !== null) {
@@ -154,18 +150,7 @@ async function handleToggleFavorite() {
 
 <template>
   <div class="min-h-screen">
-    <header class="bg-brand-600 text-white shadow-md">
-      <div class="mx-auto max-w-4xl px-4 py-5">
-        <Button
-          icon="pi pi-arrow-left"
-          label="返回图鉴"
-          text
-          class="mb-2 !text-white hover:!bg-white/10"
-          @click="goBack"
-        />
-        <h1 class="text-xl font-bold">站牌详情</h1>
-      </div>
-    </header>
+    <AppHeader title="站牌详情" show-back max-width="max-w-4xl" />
 
     <main class="mx-auto max-w-4xl px-4 py-8 pb-28">
       <div v-if="loading" class="flex justify-center py-20">

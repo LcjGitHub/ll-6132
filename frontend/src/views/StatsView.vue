@@ -2,13 +2,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
-import Button from 'primevue/button';
 import ProgressSpinner from 'primevue/progressspinner';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ProgressBar from 'primevue/progressbar';
+import AppHeader from '@/components/AppHeader.vue';
 import { fetchStats } from '@/api/signs';
 import { useSignsStore } from '@/stores/signs';
 import type { CityStats, EraStats } from '@/types/sign';
@@ -62,10 +62,6 @@ onMounted(async () => {
   }
 });
 
-function goBack() {
-  router.push('/');
-}
-
 function goToCity(city: string) {
   store.filters.city = city;
   store.filters.era = undefined;
@@ -87,18 +83,7 @@ function goToEra(era: string) {
 
 <template>
   <div class="min-h-screen">
-    <header class="bg-brand-600 text-white shadow-md">
-      <div class="mx-auto max-w-6xl px-4 py-5">
-        <Button
-          icon="pi pi-arrow-left"
-          label="返回图鉴"
-          text
-          class="mb-2 !text-white hover:!bg-white/10"
-          @click="goBack"
-        />
-        <h1 class="text-xl font-bold">数据统计</h1>
-      </div>
-    </header>
+    <AppHeader title="数据统计" />
 
     <main class="mx-auto max-w-6xl px-4 py-8">
       <div v-if="loading" class="flex justify-center py-20">
