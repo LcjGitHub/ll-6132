@@ -1,6 +1,7 @@
+import type { DbInstance } from './db';
 import db from './db';
 
-const SEED_DATA = [
+export const SEED_DATA = [
   {
     city: '北京',
     styleDescription: '蓝白配色立柱式站牌，顶部公交图标，线路信息横向排列，采用 LED 背光',
@@ -43,7 +44,7 @@ const SEED_DATA = [
   },
 ];
 
-const PRESET_TAGS = [
+export const PRESET_TAGS = [
   { name: '立柱式', color: 'primary' },
   { name: '仿古风', color: 'warning' },
   { name: '电子屏', color: 'info' },
@@ -51,66 +52,50 @@ const PRESET_TAGS = [
   { name: '候车亭', color: 'help' },
 ];
 
-const tagCount = db.prepare('SELECT COUNT(*) as count FROM tags').get() as { count: number };
-if (tagCount.count === 0) {
-  const insertTag = db.prepare('INSERT INTO tags (name, color) VALUES (?, ?)');
-  for (const tag of PRESET_TAGS) {
-    insertTag.run(tag.name, tag.color);
+export function seedDatabase(database: DbInstance, force = false): { signs: number; tags: number } {
+  let insertedTags = 0;
+  let insertedSigns = 0;
+
+  const tagCount = database.prepare('SELECT COUNT(*) as count FROM tags').get() as { count: number };
+  if (force || tagCount.count === 0) {
+    if (force) database.exec('DELETE FROM sign_tags; DELETE FROM tags;');
+    const insertTag = database.prepare('INSERT INTO tags (name, color) VALUES (?, ?)');
+    for (const tag of PRESET_TAGS) {
+      insertTag.run(tag.name, tag.color);
+      insertedTags++;
+    }
   }
-  console.log(`已插入 ${PRESET_TAGS.length} 条预设标签`);
-} else {
-  console.log(`数据库已有 ${tagCount.count} 条标签，跳过标签 seed`);
+
+  const count = database.prepare('SELECT COUNT(*) as count FROM signs').get() as { count: number };
+  if (force || count.count === 0) {
+    if (force) database.exec('DELETE FROM sign_tags; DELETE FROM signs; DELETE FROM favorites;');
+    const insertSign = database.prepare(`
+      INSERT INTO signs (city, style_description, era, in_use, image_url)
+      VALUES (@city, @styleDescription, @era, @inUse, @imageUrl)
+    `);
+    const insertSignTag = database.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
+    const getTagId = database.prepare('SELECT id FROM tags WHERE name = ?');
+
+    const insertMany = database.transaction((items: typeof SEED_DATA) => {
+      for (const item of items) {
+        const result = insertSign.run({ ...item, inUse: item.inUse ? 1 : 0 });
+        const signId = result.lastInsertRowid as number;
+        for (const tagName of item.tagNames) {
+          const tag = getTagId.get(tagName) as { id: number } | undefined;
+          if (tag) {
+            insertSignTag.run(signId, tag.id);
+          }
+        }
+        insertedSigns++;
+      }
+    });
+
+    insertMany(SEED_DATA);
+  }
+
+  return { signs: insertedSigns, tags: insertedTags };
 }
 
-const count = db.prepare('SELECT COUNT(*) as count FROM signs').get() as { count: number };
-const signTagCount = db.prepare('SELECT COUNT(*) as count FROM sign_tags').get() as { count: number };
-
-if (count.count === 0) {
-  const insertSign = db.prepare(`
-    INSERT INTO signs (city, style_description, era, in_use, image_url)
-    VALUES (@city, @styleDescription, @era, @inUse, @imageUrl)
-  `);
-  const insertSignTag = db.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
-  const getTagId = db.prepare('SELECT id FROM tags WHERE name = ?');
-
-  const insertMany = db.transaction((items: typeof SEED_DATA) => {
-    for (const item of items) {
-      const result = insertSign.run({ ...item, inUse: item.inUse ? 1 : 0 });
-      const signId = result.lastInsertRowid as number;
-      for (const tagName of item.tagNames) {
-        const tag = getTagId.get(tagName) as { id: number } | undefined;
-        if (tag) {
-          insertSignTag.run(signId, tag.id);
-        }
-      }
-    }
-  });
-
-  insertMany(SEED_DATA);
-  console.log(`已插入 ${SEED_DATA.length} 条站牌 seed 数据（含标签关联）`);
-} else if (signTagCount.count === 0) {
-  console.log('检测到已有站牌但无标签关联，开始补充关联数据...');
-  const getTagId = db.prepare('SELECT id FROM tags WHERE name = ?');
-  const insertSignTag = db.prepare('INSERT INTO sign_tags (sign_id, tag_id) VALUES (?, ?)');
-  const allSigns = db.prepare('SELECT id, city FROM signs').all() as { id: number; city: string }[];
-
-  const cityTagMap: Record<string, string[]> = {};
-  for (const item of SEED_DATA) {
-    cityTagMap[item.city] = item.tagNames;
-  }
-
-  for (const sign of allSigns) {
-    const tagNames = cityTagMap[sign.city];
-    if (tagNames) {
-      for (const tagName of tagNames) {
-        const tag = getTagId.get(tagName) as { id: number } | undefined;
-        if (tag) {
-          insertSignTag.run(sign.id, tag.id);
-        }
-      }
-    }
-  }
-  console.log('标签关联补充完成');
-} else {
-  console.log(`数据库已有 ${count.count} 条记录，跳过站牌 seed`);
+if (require.main === undefined || !process.env.DISABLE_AUTO_SEED) {
+  seedDatabase(db);
 }
