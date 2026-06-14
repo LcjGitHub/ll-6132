@@ -247,5 +247,6 @@ export const useSignsStore = defineStore('signs', () => {
     addSign,
     editSign,
     removeSign,
+    buildApiFilters,
   };
 });

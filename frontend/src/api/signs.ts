@@ -73,6 +73,27 @@ export async function deleteTag(id: number): Promise<void> {
   await api.delete(`/tags/${id}`);
 }
 
+/** 导出站牌数据为 CSV */
+export async function exportSigns(filters?: SignFilters): Promise<void> {
+  const params = buildFilterParams(filters);
+  const response = await api.get('/signs/export', {
+    params,
+    responseType: 'blob',
+  });
+  const blob = response.data as Blob;
+  if (blob.size === 0) {
+    throw new Error('NO_DATA');
+  }
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'signs_export.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
 /** 获取单条站牌 */
 export async function fetchSign(id: number): Promise<BusSign> {
   const { data } = await api.get<BusSign>(`/signs/${id}`);

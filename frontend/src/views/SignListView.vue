@@ -17,6 +17,7 @@ import Paginator from 'primevue/paginator';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import { useSignsStore } from '@/stores/signs';
+import { exportSigns } from '@/api/signs';
 import type { BusSign, SortField, SortOrder } from '@/types/sign';
 
 interface SortOption {
@@ -95,6 +96,7 @@ const previewSign = ref<BusSign | null>(null);
 const previewVisible = ref(false);
 const formVisible = ref(false);
 const editingSign = ref<BusSign | null>(null);
+const exporting = ref(false);
 
 const selectedIds = ref<number[]>([]);
 const selectedCount = computed(() => selectedIds.value.length);
@@ -191,6 +193,23 @@ function confirmDelete(sign: BusSign) {
       }
     },
   });
+}
+
+async function handleExport() {
+  exporting.value = true;
+  try {
+    const apiFilters = store.buildApiFilters();
+    await exportSigns(apiFilters);
+    toast.add({ severity: 'success', summary: '导出成功', life: 2000 });
+  } catch (e: any) {
+    if (e?.message === 'NO_DATA') {
+      toast.add({ severity: 'warn', summary: '无数据', detail: '当前筛选条件下没有站牌数据', life: 3000 });
+    } else {
+      toast.add({ severity: 'error', summary: '导出失败', detail: '请求失败，请稍后重试', life: 3000 });
+    }
+  } finally {
+    exporting.value = false;
+  }
 }
 
 /** 表单保存成功回调 */
@@ -357,6 +376,13 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             :disabled="compareDisabled"
             severity="warning"
             @click="goCompare"
+          />
+          <Button
+            label="导出数据"
+            icon="pi pi-download"
+            outlined
+            :loading="exporting"
+            @click="handleExport"
           />
           <Button label="新增站牌" icon="pi pi-plus" @click="openCreate" />
         </div>

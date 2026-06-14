@@ -80,54 +80,72 @@ function validateTagIds(tagIds: number[] | undefined): string | null {
   return null;
 }
 
-/** GET /api/signs — 获取站牌列表（支持筛选、排序、分页） */
-router.get('/', (req: Request, res: Response) => {
-  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize, keyword } = req.query;
-
+function buildFilterWhereClause(
+  query: Record<string, string | undefined>
+): { joinClause: string; whereClause: string; params: (string | number)[] } {
   const conditions: string[] = [];
   const params: (string | number)[] = [];
   let joinClause = '';
 
-  if (typeof city === 'string' && city.trim() !== '') {
+  if (query.city && query.city.trim() !== '') {
     conditions.push('s.city = ?');
-    params.push(city);
+    params.push(query.city);
   }
-  if (typeof era === 'string' && era.trim() !== '') {
+  if (query.era && query.era.trim() !== '') {
     conditions.push('s.era = ?');
-    params.push(era);
+    params.push(query.era);
   }
-  if (inUse !== undefined && inUse !== '') {
-    const inUseVal = inUse === 'true' || inUse === '1' ? 1 : 0;
+  if (query.inUse !== undefined && query.inUse !== '') {
+    const inUseVal = query.inUse === 'true' || query.inUse === '1' ? 1 : 0;
     conditions.push('s.in_use = ?');
     params.push(inUseVal);
   }
-  if (typeof tagId === 'string' && tagId.trim() !== '') {
-    const tagIdNum = Number(tagId);
+  if (query.tagId && query.tagId.trim() !== '') {
+    const tagIdNum = Number(query.tagId);
     if (!Number.isNaN(tagIdNum) && tagIdNum > 0) {
       joinClause = 'INNER JOIN sign_tags st ON s.id = st.sign_id';
       conditions.push('st.tag_id = ?');
       params.push(tagIdNum);
     }
   }
-  if (typeof keyword === 'string' && keyword.trim() !== '') {
+  if (query.keyword && query.keyword.trim() !== '') {
     conditions.push('s.style_description LIKE ?');
-    params.push(`%${keyword.trim()}%`);
-  }
-
-  const validSortFields = ['id', 'city', 'era'];
-  let sortField = 'id';
-  if (typeof sortBy === 'string' && validSortFields.includes(sortBy)) {
-    sortField = sortBy;
-  }
-
-  const validSortOrders = ['asc', 'desc'];
-  let order = 'asc';
-  if (typeof sortOrder === 'string' && validSortOrders.includes(sortOrder.toLowerCase())) {
-    order = sortOrder.toLowerCase();
+    params.push(`%${query.keyword.trim()}%`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const orderClause = `ORDER BY s.${sortField} ${order}`;
+  return { joinClause, whereClause, params };
+}
+
+function buildOrderClause(sortBy?: string, sortOrder?: string): string {
+  const validSortFields = ['id', 'city', 'era'];
+  let sortField = 'id';
+  if (sortBy && validSortFields.includes(sortBy)) {
+    sortField = sortBy;
+  }
+  const validSortOrders = ['asc', 'desc'];
+  let order = 'asc';
+  if (sortOrder && validSortOrders.includes(sortOrder.toLowerCase())) {
+    order = sortOrder.toLowerCase();
+  }
+  return `ORDER BY s.${sortField} ${order}`;
+}
+
+/** GET /api/signs — 获取站牌列表（支持筛选、排序、分页） */
+router.get('/', (req: Request, res: Response) => {
+  const { city, era, inUse, tagId, sortBy, sortOrder, page, pageSize, keyword } = req.query;
+
+  const { joinClause, whereClause, params } = buildFilterWhereClause({
+    city: typeof city === 'string' ? city : undefined,
+    era: typeof era === 'string' ? era : undefined,
+    inUse: inUse !== undefined ? String(inUse) : undefined,
+    tagId: typeof tagId === 'string' ? tagId : undefined,
+    keyword: typeof keyword === 'string' ? keyword : undefined,
+  });
+  const orderClause = buildOrderClause(
+    typeof sortBy === 'string' ? sortBy : undefined,
+    typeof sortOrder === 'string' ? sortOrder : undefined
+  );
 
   const usePagination = page !== undefined && pageSize !== undefined;
 
@@ -157,6 +175,55 @@ router.get('/', (req: Request, res: Response) => {
     res.json(rows.map((r) => rowToSign(r, true)));
   }
 });
+
+/** GET /api/signs/export — 导出站牌数据为 CSV 文件 */
+router.get('/export', (req: Request, res: Response) => {
+  const { city, era, inUse, tagId, sortBy, sortOrder, keyword } = req.query;
+
+  const { joinClause, whereClause, params } = buildFilterWhereClause({
+    city: typeof city === 'string' ? city : undefined,
+    era: typeof era === 'string' ? era : undefined,
+    inUse: inUse !== undefined ? String(inUse) : undefined,
+    tagId: typeof tagId === 'string' ? tagId : undefined,
+    keyword: typeof keyword === 'string' ? keyword : undefined,
+  });
+  const orderClause = buildOrderClause(
+    typeof sortBy === 'string' ? sortBy : undefined,
+    typeof sortOrder === 'string' ? sortOrder : undefined
+  );
+
+  const dataSql = `SELECT DISTINCT s.* FROM signs s ${joinClause} ${whereClause} ${orderClause}`;
+  const rows = db.prepare(dataSql).all(...params) as DbRow[];
+
+  const csvHeader = '编号,城市,样式描述,年代,是否使用中,图片地址,标签名称';
+  const csvRows = rows.map((row) => {
+    const sign = rowToSign(row, true);
+    const tagNames = (sign.tags || []).map((t) => t.name).join('|');
+    return [
+      sign.id,
+      csvEscape(sign.city),
+      csvEscape(sign.styleDescription),
+      csvEscape(sign.era),
+      sign.inUse ? '是' : '否',
+      csvEscape(sign.imageUrl),
+      csvEscape(tagNames),
+    ].join(',');
+  });
+
+  const bom = '\uFEFF';
+  const csv = bom + csvHeader + '\n' + csvRows.join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="signs_export.csv"');
+  res.send(csv);
+});
+
+function csvEscape(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return '"' + value.replace(/"/g, '""') + '"';
+  }
+  return value;
+}
 
 /** GET /api/signs/batch — 按编号批量查询站牌详情 */
 router.get('/batch', (req: Request, res: Response) => {
