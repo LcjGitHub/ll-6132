@@ -339,6 +339,38 @@ router.put('/:id', (req: Request, res: Response) => {
   res.json(rowToSign(row, true));
 });
 
+/** DELETE /api/signs/batch — 批量删除站牌 */
+router.delete('/batch', (req: Request, res: Response) => {
+  const { ids } = req.body as { ids?: number[] };
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ error: '缺少 ids 参数或格式错误' });
+    return;
+  }
+  const validIds = ids.filter((id) => typeof id === 'number' && id > 0);
+  if (validIds.length === 0) {
+    res.status(400).json({ error: 'ids 参数格式错误' });
+    return;
+  }
+
+  const placeholders = validIds.map(() => '?').join(',');
+  const deletedCities = db
+    .prepare(`SELECT city FROM signs WHERE id IN (${placeholders})`)
+    .all(...validIds) as { city: string }[];
+
+  db.prepare(`DELETE FROM sign_tags WHERE sign_id IN (${placeholders})`).run(...validIds);
+  const result = db.prepare(`DELETE FROM signs WHERE id IN (${placeholders})`).run(...validIds);
+
+  if (result.changes === 0) {
+    res.status(404).json({ error: '未找到要删除的站牌' });
+    return;
+  }
+
+  res.json({
+    deletedCount: result.changes,
+    deletedCities: deletedCities.map((r) => r.city),
+  });
+});
+
 /** DELETE /api/signs/:id — 删除站牌 */
 router.delete('/:id', (req: Request, res: Response) => {
   const result = db.prepare('DELETE FROM signs WHERE id = ?').run(req.params.id);

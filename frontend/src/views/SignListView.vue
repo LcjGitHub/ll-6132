@@ -17,7 +17,7 @@ import Paginator from 'primevue/paginator';
 import SignFormDialog from '@/components/SignFormDialog.vue';
 import AppHeader from '@/components/AppHeader.vue';
 import { useSignsStore } from '@/stores/signs';
-import { exportSigns } from '@/api/signs';
+import { exportSigns, deleteSignsBatch } from '@/api/signs';
 import type { BusSign, SortField, SortOrder } from '@/types/sign';
 
 interface SortOption {
@@ -132,6 +132,60 @@ function clearSelection() {
 
 function goCompare() {
   router.push({ name: 'sign-compare', query: { ids: selectedIds.value.join(',') } });
+}
+
+const deleteSelectedIds = ref<number[]>([]);
+const deleteSelectedCount = computed(() => deleteSelectedIds.value.length);
+const showBatchDelete = computed(() => deleteSelectedCount.value >= 1);
+
+function isDeleteSelected(id: number): boolean {
+  return deleteSelectedIds.value.includes(id);
+}
+
+function toggleDeleteSelect(id: number) {
+  const idx = deleteSelectedIds.value.indexOf(id);
+  if (idx !== -1) {
+    deleteSelectedIds.value.splice(idx, 1);
+  } else {
+    deleteSelectedIds.value.push(id);
+  }
+}
+
+function clearDeleteSelection() {
+  deleteSelectedIds.value = [];
+}
+
+function getDeleteSelectedSigns(): BusSign[] {
+  return store.signs.filter((s) => deleteSelectedIds.value.includes(s.id));
+}
+
+function confirmBatchDelete() {
+  const selectedSigns = getDeleteSelectedSigns();
+  const cityNames = selectedSigns.map((s) => `${s.province} ${s.city}`).join('、');
+
+  confirm.require({
+    message: `确定要删除以下 ${selectedSigns.length} 条站牌记录吗？\n${cityNames}`,
+    header: '确认批量删除',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: '删除',
+    rejectLabel: '取消',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        const result = await deleteSignsBatch(deleteSelectedIds.value);
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: `已删除 ${result.deletedCount} 条站牌记录`,
+          life: 2500,
+        });
+        clearDeleteSelection();
+        await store.loadSigns();
+      } catch {
+        toast.add({ severity: 'error', summary: '删除失败', life: 3000 });
+      }
+    },
+  });
 }
 
 async function handleKeywordSearch() {
@@ -372,11 +426,21 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             />
           </div>
           <div v-if="selectedCount > 0" class="flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
-            <span>已选 {{ selectedCount }} / 2</span>
+            <span>对比已选 {{ selectedCount }} / 2</span>
             <button
               class="ml-1 rounded-full p-0.5 hover:bg-brand-100"
-              title="清除选择"
+              title="清除对比选择"
               @click="clearSelection"
+            >
+              <i class="pi pi-times text-xs" />
+            </button>
+          </div>
+          <div v-if="deleteSelectedCount > 0" class="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm text-red-700">
+            <span>删除已选 {{ deleteSelectedCount }}</span>
+            <button
+              class="ml-1 rounded-full p-0.5 hover:bg-red-100"
+              title="清除删除选择"
+              @click="clearDeleteSelection"
             >
               <i class="pi pi-times text-xs" />
             </button>
@@ -389,6 +453,13 @@ async function onPageChange(event: { page: number; rows: number; first: number }
             option-label="label"
             option-value="value"
             data-key="value"
+          />
+          <Button
+            v-if="showBatchDelete"
+            label="批量删除"
+            icon="pi pi-trash"
+            severity="danger"
+            @click="confirmBatchDelete"
           />
           <Button
             label="对比站牌"
@@ -452,13 +523,26 @@ async function onPageChange(event: { page: number; rows: number; first: number }
                   @click.stop="handleToggleFavorite(sign)"
                 />
                 <div
-                  class="absolute bottom-2 left-2 z-10 rounded-md bg-white/90 p-1.5 shadow-sm"
+                  class="absolute bottom-2 left-2 z-10 flex gap-1.5 rounded-md bg-white/90 p-1.5 shadow-sm"
                 >
-                  <Checkbox
-                    :modelValue="isSelected(sign.id)"
-                    binary
-                    @update:modelValue="toggleSelect(sign.id)"
-                  />
+                  <div class="flex items-center gap-1">
+                    <Checkbox
+                      :modelValue="isSelected(sign.id)"
+                      binary
+                      @update:modelValue="toggleSelect(sign.id)"
+                    />
+                    <span class="text-xs text-slate-500" title="对比">对比</span>
+                  </div>
+                  <div class="w-px bg-slate-300" />
+                  <div class="flex items-center gap-1">
+                    <Checkbox
+                      :modelValue="isDeleteSelected(sign.id)"
+                      binary
+                      class="[&_.p-checkbox-box]:border-red-400 [&_.p-checkbox-box.p-highlight]:bg-red-500 [&_.p-checkbox-box.p-highlight]:border-red-500"
+                      @update:modelValue="toggleDeleteSelect(sign.id)"
+                    />
+                    <span class="text-xs text-red-500" title="删除">删</span>
+                  </div>
                 </div>
               </div>
               <div class="p-4">
@@ -504,12 +588,25 @@ async function onPageChange(event: { page: number; rows: number; first: number }
               class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
               :class="{ 'ring-2 ring-brand-500 ring-offset-2': isSelected(sign.id) }"
             >
-              <div class="flex shrink-0 items-center pr-2">
-                <Checkbox
-                  :modelValue="isSelected(sign.id)"
-                  binary
-                  @update:modelValue="toggleSelect(sign.id)"
-                />
+              <div class="flex shrink-0 flex-col items-center justify-center gap-2 pr-2">
+                <div class="flex flex-col items-center gap-0.5">
+                  <Checkbox
+                    :modelValue="isSelected(sign.id)"
+                    binary
+                    @update:modelValue="toggleSelect(sign.id)"
+                  />
+                  <span class="text-[10px] text-slate-500" title="对比">对比</span>
+                </div>
+                <div class="w-8 border-t border-slate-200" />
+                <div class="flex flex-col items-center gap-0.5">
+                  <Checkbox
+                    :modelValue="isDeleteSelected(sign.id)"
+                    binary
+                    class="[&_.p-checkbox-box]:border-red-400 [&_.p-checkbox-box.p-highlight]:bg-red-500 [&_.p-checkbox-box.p-highlight]:border-red-500"
+                    @update:modelValue="toggleDeleteSelect(sign.id)"
+                  />
+                  <span class="text-[10px] text-red-500" title="删除">删除</span>
+                </div>
               </div>
               <div class="relative shrink-0 overflow-hidden rounded-lg">
                 <img

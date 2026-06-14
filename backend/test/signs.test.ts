@@ -231,3 +231,58 @@ describe('GET /api/signs - 站牌列表接口', () => {
     });
   });
 });
+
+describe('DELETE /api/signs/batch - 批量删除站牌接口', () => {
+  it('应成功批量删除多条站牌', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({ ids: [1, 2] });
+    expect(res.status).toBe(200);
+    expect(res.body.deletedCount).toBe(2);
+    expect(res.body.deletedCities).toEqual(expect.arrayContaining(['北京', '上海']));
+
+    const listRes = await testRequest().get('/api/signs');
+    const remainingIds = listRes.body.map((item: BusSign) => item.id);
+    expect(remainingIds).not.toContain(1);
+    expect(remainingIds).not.toContain(2);
+  });
+
+  it('删除时应同时删除关联的标签关系', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({ ids: [3] });
+    expect(res.status).toBe(200);
+
+    const signRes = await testRequest().get('/api/signs/3');
+    expect(signRes.status).toBe(404);
+  });
+
+  it('缺少 ids 参数应返回 400', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('空数组 ids 应返回 400', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({ ids: [] });
+    expect(res.status).toBe(400);
+  });
+
+  it('无效 ids 格式应返回 400', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({ ids: ['invalid', 'ids'] });
+    expect(res.status).toBe(400);
+  });
+
+  it('删除不存在的 id 应返回 404', async () => {
+    const res = await testRequest()
+      .delete('/api/signs/batch')
+      .send({ ids: [9999, 8888] });
+    expect(res.status).toBe(404);
+  });
+});

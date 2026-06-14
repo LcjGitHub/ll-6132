@@ -143,6 +143,12 @@ export async function deleteSign(id: number): Promise<void> {
   await api.delete(`/signs/${id}`);
 }
 
+/** 批量删除站牌 */
+export async function deleteSignsBatch(ids: number[]): Promise<{ deletedCount: number; deletedCities: string[] }> {
+  const { data } = await api.delete('/signs/batch', { data: { ids } });
+  return data;
+}
+
 /** 获取按城市汇总的统计数据 */
 export async function fetchCityStats(): Promise<CityStats[]> {
   const { data } = await api.get<CityStats[]>('/stats/cities');
