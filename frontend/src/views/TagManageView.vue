@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import DataTable from 'primevue/datatable';
@@ -15,7 +14,6 @@ import AppHeader from '@/components/AppHeader.vue';
 import { fetchTags, createTag, updateTag, deleteTag } from '@/api/signs';
 import type { Tag as TagType } from '@/types/sign';
 
-const router = useRouter();
 const toast = useToast();
 const confirm = useConfirm();
 

@@ -7,7 +7,9 @@ import Tag from 'primevue/tag';
 import ProgressSpinner from 'primevue/progressspinner';
 import AppHeader from '@/components/AppHeader.vue';
 import { fetchSignsBatch } from '@/api/signs';
+import { compareSigns, formatInUse } from '@/utils/signCompare';
 import type { BusSign } from '@/types/sign';
+import type { SignComparisonResult } from '@/utils/signCompare';
 
 const router = useRouter();
 const route = useRoute();
@@ -18,6 +20,11 @@ const loading = ref(true);
 
 const leftSign = computed(() => signs.value[0] || null);
 const rightSign = computed(() => signs.value[1] || null);
+
+const comparison = computed<SignComparisonResult | null>(() => {
+  if (!leftSign.value || !rightSign.value) return null;
+  return compareSigns(leftSign.value, rightSign.value);
+});
 
 function parseIds(): number[] | null {
   const raw = route.query.ids;
@@ -66,6 +73,16 @@ function swapSigns() {
 
 function goDetail(id: number) {
   router.push({ name: 'sign-detail', params: { id } });
+}
+
+function fieldDiffClass(isSame: boolean, side: 'left' | 'right'): string {
+  if (isSame) return '';
+  return side === 'left' ? 'bg-brand-50' : 'bg-amber-50';
+}
+
+function fieldDiffTextClass(isSame: boolean, side: 'left' | 'right'): string {
+  if (isSame) return 'text-slate-600';
+  return side === 'left' ? 'text-brand-700' : 'text-amber-700';
 }
 </script>
 
@@ -152,17 +169,26 @@ function goDetail(id: number) {
                     <p class="text-xs text-slate-400">省份</p>
                     <p class="mt-1 font-medium text-slate-800">{{ sign.province }}</p>
                   </div>
-                  <div>
+                  <div
+                    class="rounded-lg p-2 transition-colors"
+                    :class="comparison ? fieldDiffClass(comparison.city.isSame, idx === 0 ? 'left' : 'right') : ''"
+                  >
                     <p class="text-xs text-slate-400">城市</p>
-                    <p class="mt-1 font-medium text-slate-800">{{ sign.city }}</p>
+                    <p class="mt-1 font-medium" :class="comparison ? fieldDiffTextClass(comparison.city.isSame, idx === 0 ? 'left' : 'right') : 'text-slate-800'">{{ sign.city }}</p>
                   </div>
-                  <div>
+                  <div
+                    class="rounded-lg p-2 transition-colors"
+                    :class="comparison ? fieldDiffClass(comparison.era.isSame, idx === 0 ? 'left' : 'right') : ''"
+                  >
                     <p class="text-xs text-slate-400">年代</p>
-                    <p class="mt-1 font-medium text-slate-800">{{ sign.era }}</p>
+                    <p class="mt-1 font-medium" :class="comparison ? fieldDiffTextClass(comparison.era.isSame, idx === 0 ? 'left' : 'right') : 'text-slate-800'">{{ sign.era }}</p>
                   </div>
-                  <div>
+                  <div
+                    class="rounded-lg p-2 transition-colors"
+                    :class="comparison ? fieldDiffClass(comparison.inUse.isSame, idx === 0 ? 'left' : 'right') : ''"
+                  >
                     <p class="text-xs text-slate-400">使用状态</p>
-                    <p class="mt-1 font-medium text-slate-800">{{ sign.inUse ? '使用中' : '已停用' }}</p>
+                    <p class="mt-1 font-medium" :class="comparison ? fieldDiffTextClass(comparison.inUse.isSame, idx === 0 ? 'left' : 'right') : 'text-slate-800'">{{ formatInUse(sign.inUse) }}</p>
                   </div>
                   <div class="col-span-2">
                     <p class="text-xs text-slate-400">图片链接</p>
@@ -176,16 +202,19 @@ function goDetail(id: number) {
                   </div>
                 </div>
 
-                <div>
+                <div
+                  class="rounded-xl p-4 transition-colors"
+                  :class="comparison ? fieldDiffClass(comparison.styleDescription.isSame, idx === 0 ? 'left' : 'right') : ''"
+                >
                   <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">样式描述</p>
-                  <p class="leading-relaxed text-slate-700">{{ sign.styleDescription }}</p>
+                  <p class="leading-relaxed" :class="comparison ? fieldDiffTextClass(comparison.styleDescription.isSame, idx === 0 ? 'left' : 'right') : 'text-slate-700'">{{ sign.styleDescription }}</p>
                 </div>
               </dl>
             </div>
           </div>
         </div>
 
-        <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div v-if="comparison" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 class="mb-4 text-lg font-semibold text-slate-800">差异速览</h3>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -203,40 +232,85 @@ function goDetail(id: number) {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                <tr>
-                  <td class="py-3 text-slate-500">省份</td>
-                  <td class="py-3 font-medium" :class="leftSign.province === rightSign.province ? 'text-slate-600' : 'text-brand-700'">
-                    {{ leftSign.province }}
+                <tr v-for="field in comparison.allFields" :key="field.key" :class="!field.isSame ? 'font-medium' : ''">
+                  <td class="py-3 text-slate-500">
+                    <span class="inline-flex items-center gap-2">
+                      <span
+                        v-if="!field.isSame"
+                        class="inline-flex h-2 w-2 rounded-full bg-rose-500"
+                      />
+                      {{ field.label }}
+                    </span>
                   </td>
-                  <td class="py-3 font-medium" :class="leftSign.province === rightSign.province ? 'text-slate-600' : 'text-amber-700'">
-                    {{ rightSign.province }}
+                  <td
+                    class="py-3 transition-colors"
+                    :class="fieldDiffClass(field.isSame, 'left')"
+                  >
+                    <span :class="fieldDiffTextClass(field.isSame, 'left')">
+                      <template v-if="field.key === 'inUse'">{{ formatInUse(comparison[field.key].left) }}</template>
+                      <template v-else>{{ comparison[field.key].left }}</template>
+                    </span>
                   </td>
-                </tr>
-                <tr>
-                  <td class="py-3 text-slate-500">年代</td>
-                  <td class="py-3 font-medium" :class="leftSign.era === rightSign.era ? 'text-slate-600' : 'text-brand-700'">
-                    {{ leftSign.era }}
+                  <td
+                    class="py-3 transition-colors"
+                    :class="fieldDiffClass(field.isSame, 'right')"
+                  >
+                    <span :class="fieldDiffTextClass(field.isSame, 'right')">
+                      <template v-if="field.key === 'inUse'">{{ formatInUse(comparison[field.key].right) }}</template>
+                      <template v-else>{{ comparison[field.key].right }}</template>
+                    </span>
                   </td>
-                  <td class="py-3 font-medium" :class="leftSign.era === rightSign.era ? 'text-slate-600' : 'text-amber-700'">
-                    {{ rightSign.era }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="py-3 text-slate-500">使用状态</td>
-                  <td class="py-3 font-medium" :class="leftSign.inUse === rightSign.inUse ? 'text-slate-600' : 'text-brand-700'">
-                    {{ leftSign.inUse ? '使用中' : '已停用' }}
-                  </td>
-                  <td class="py-3 font-medium" :class="leftSign.inUse === rightSign.inUse ? 'text-slate-600' : 'text-amber-700'">
-                    {{ rightSign.inUse ? '使用中' : '已停用' }}
-                  </td>
-                </tr>
-                <tr>
-                  <td class="py-3 align-top text-slate-500">样式描述</td>
-                  <td class="py-3 leading-relaxed text-slate-600">{{ leftSign.styleDescription }}</td>
-                  <td class="py-3 leading-relaxed text-slate-600">{{ rightSign.styleDescription }}</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div
+          v-if="comparison && (comparison.tags.leftOnly.length > 0 || comparison.tags.rightOnly.length > 0)"
+          class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h3 class="mb-4 text-lg font-semibold text-slate-800">标签差异</h3>
+          <div class="grid gap-6 md:grid-cols-2">
+            <div v-if="comparison.tags.leftOnly.length > 0" class="rounded-xl border border-brand-100 bg-brand-50 p-4">
+              <p class="mb-3 text-sm font-semibold text-brand-700">
+                仅左侧有
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <Tag
+                  v-for="tag in comparison.tags.leftOnly"
+                  :key="tag.id"
+                  :value="tag.name"
+                  :severity="tag.color as any"
+                />
+              </div>
+            </div>
+            <div v-if="comparison.tags.rightOnly.length > 0" class="rounded-xl border border-amber-100 bg-amber-50 p-4">
+              <p class="mb-3 text-sm font-semibold text-amber-700">
+                仅右侧有
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <Tag
+                  v-for="tag in comparison.tags.rightOnly"
+                  :key="tag.id"
+                  :value="tag.name"
+                  :severity="tag.color as any"
+                />
+              </div>
+            </div>
+          </div>
+          <div v-if="comparison.tags.both.length > 0" class="mt-4">
+            <p class="mb-3 text-sm font-medium text-slate-500">
+              双方共有
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <Tag
+                v-for="tag in comparison.tags.both"
+                :key="tag.id"
+                :value="tag.name"
+                :severity="tag.color as any"
+              />
+            </div>
           </div>
         </div>
       </template>
